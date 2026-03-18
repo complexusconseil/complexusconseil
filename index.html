@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complexus Conseil — RSE & Transformation Digitale pour TPE/PME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1a2318;
+    --ink-mid:    #3d4f3a;
+    --ink-light:  #667a62;
+    --cream:      #f6f2ea;
+    --cream-dark: #ede8df;
+    --green:      #2a5c3f;
+    --green-mid:  #3d7a56;
+    --green-light:#e8f0e6;
+    --gold:       #b5873a;
+    --gold-light: #f7f0e3;
+    --white:      #ffffff;
+    --serif:      'Fraunces', Georgia, serif;
+    --sans:       'DM Sans', system-ui, sans-serif;
+    --radius:     8px;
+    --radius-lg:  16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(246,242,234,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--cream-dark);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    font-family: var(--serif);
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--green); letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 2rem; align-items: center; }
+  .nav-links a { text-decoration: none; color: var(--ink-mid); font-size: 0.875rem; font-weight: 400; transition: color .2s; }
+  .nav-links a:hover { color: var(--green); }
+  .nav-cta {
+    background: var(--green); color: var(--white) !important;
+    padding: 0.5rem 1.25rem; border-radius: 100px;
+    font-size: 0.875rem !important; font-weight: 500 !important;
+    transition: background .2s !important;
+  }
+  .nav-cta:hover { background: var(--green-mid) !important; }
+
+  /* ── SECTIONS ── */
+  section { padding: 6rem 2rem; }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    background: var(--white);
+    padding-top: 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; top: 0; right: 0;
+    width: 55%; height: 100%;
+    background: linear-gradient(135deg, var(--green-light) 0%, var(--cream) 100%);
+    clip-path: polygon(12% 0, 100% 0, 100% 100%, 0% 100%);
+  }
+  .hero-inner {
+    max-width: 1100px; margin: 0 auto; width: 100%;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+    position: relative; z-index: 1;
+  }
+  .hero-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--gold-light); border: 1px solid var(--gold);
+    color: var(--gold); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 0.35rem 0.85rem; border-radius: 100px;
+    margin-bottom: 1.5rem;
+  }
+  .hero-dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; display: inline-block; }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 4.5vw, 3.5rem);
+    font-weight: 700; line-height: 1.15;
+    color: var(--ink); margin-bottom: 1.5rem;
+  }
+  h1 em { font-style: italic; color: var(--green); }
+  .hero-sub {
+    font-size: 1.05rem; color: var(--ink-mid);
+    line-height: 1.7; margin-bottom: 2.5rem;
+    max-width: 480px;
+  }
+  .btn-group { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--green); color: var(--white);
+    padding: 0.85rem 2rem; border-radius: 100px; border: none;
+    font-family: var(--sans); font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; text-decoration: none; display: inline-block;
+    transition: background .2s, transform .15s;
+  }
+  .btn-primary:hover { background: var(--green-mid); transform: translateY(-1px); }
+  .btn-ghost {
+    color: var(--ink-mid); font-size: 0.9rem; font-weight: 400;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    border-bottom: 1px solid var(--ink-mid); padding-bottom: 2px;
+    transition: color .2s;
+  }
+  .btn-ghost:hover { color: var(--green); border-color: var(--green); }
+
+  .hero-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--cream-dark);
+    padding: 2rem;
+    box-shadow: 0 4px 32px rgba(42,92,63,0.08);
+  }
+  .hero-card-label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-light); font-weight: 500; margin-bottom: 1rem;
+  }
+  .hero-stat { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: flex-start; }
+  .hero-stat-num {
+    font-family: var(--serif); font-size: 2.2rem; font-weight: 700;
+    color: var(--green); line-height: 1; white-space: nowrap;
+  }
+  .hero-stat-text { font-size: 0.85rem; color: var(--ink-mid); line-height: 1.5; padding-top: 4px; }
+  .hero-card-divider { border: none; border-top: 1px solid var(--cream-dark); margin: 1.25rem 0; }
+  .hero-items { display: flex; flex-direction: column; gap: 0.7rem; }
+  .hero-item { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; color: var(--ink-mid); }
+  .hero-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--green-light); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero-check::after { content: '✓'; font-size: 11px; color: var(--green); font-weight: 600; }
+
+  /* ── LOGOS STRIP ── */
+  #logos {
+    background: var(--cream-dark);
+    padding: 2.5rem 2rem;
+    border-top: 1px solid #e0dbd2;
+    border-bottom: 1px solid #e0dbd2;
+  }
+  .logos-label { text-align: center; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-light); margin-bottom: 1.5rem; }
+  .logos-row { display: flex; justify-content: center; align-items: center; gap: 3rem; flex-wrap: wrap; }
+  .logo-pill {
+    background: var(--white); border: 1px solid #e0dbd2;
+    padding: 0.4rem 1.1rem; border-radius: 100px;
+    font-size: 0.8rem; font-weight: 500; color: var(--ink-mid);
+    white-space: nowrap;
+  }
+
+  /* ── RSE INSIGHT BLOCK ── */
+  #insight {
+    background: var(--green);
+    color: var(--white);
+    padding: 5rem 2rem;
+  }
+  .insight-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1.2fr; gap: 5rem; align-items: center;
+  }
+  .insight-tag {
+    display: inline-block; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 0.3rem 0.8rem; border-radius: 100px; margin-bottom: 1.25rem;
+  }
+  .insight-title {
+    font-family: var(--serif); font-size: clamp(1.8rem, 3vw, 2.6rem);
+    font-weight: 700; line-height: 1.25; margin-bottom: 1.25rem;
+  }
+  .insight-title em { font-style: italic; color: #a8d5b8; }
+  .insight-body { font-size: 1rem; line-height: 1.75; color: rgba(255,255,255,0.82); }
+  .insight-cards { display: flex; flex-direction: column; gap: 1rem; }
+  .insight-card {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .insight-card-icon {
+    width: 40px; height: 40px; border-radius: var(--radius);
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .insight-card-title { font-weight: 500; font-size: 0.9rem; margin-bottom: 3px; }
+  .insight-card-body { font-size: 0.82rem; color: rgba(255,255,255,0.72); line-height: 1.5; }
+
+  /* ── SERVICES ── */
+  #services { background: var(--white); }
+  .section-label {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--gold); font-weight: 500; margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-family: var(--serif); font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 700; line-height: 1.25; color: var(--ink);
+    margin-bottom: 1rem;
+  }
+  .section-sub { font-size: 1rem; color: var(--ink-mid); max-width: 560px; line-height: 1.7; margin-bottom: 3rem; }
+
+  .tabs { display: flex; gap: 0; border: 1px solid var(--cream-dark); border-radius: 100px; overflow: hidden; width: fit-content; margin-bottom: 3rem; }
+  .tab {
+    padding: 0.6rem 1.5rem; font-size: 0.875rem; cursor: pointer;
+    border: none; background: transparent; font-family: var(--sans); font-weight: 400;
+    color: var(--ink-mid); transition: all .2s;
+  }
+  .tab.active { background: var(--green); color: var(--white); font-weight: 500; }
+
+  .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+  .service-card {
+    background: var(--cream);
+    border: 1px solid var(--cream-dark);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    position: relative; overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+  .service-card:hover { border-color: var(--green-mid); transform: translateY(-2px); }
+  .service-card.featured {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--white);
+  }
+  .service-tag {
+    display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0.25rem 0.7rem; border-radius: 100px; margin-bottom: 1rem;
+    background: var(--green-light); color: var(--green); font-weight: 500;
+  }
+  .service-card.featured .service-tag { background: rgba(255,255,255,0.2); color: var(--white); }
+  .service-card h3 { font-size: 1.05rem; font-weight: 500; margin-bottom: 0.5rem; }
+  .service-card.featured h3 { color: var(--white); }
+  .service-desc { font-size: 0.85rem; color: var(--ink-mid); line-height: 1.6; margin-bottom: 1.25rem; }
+  .service-card.featured .service-desc { color: rgba(255,255,255,0.78); }
+  .service-meta { display: flex; justify-content: space-between; align-items: flex-end; }
+  .service-price { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--green); }
+  .service-card.featured .service-price { color: var(--white); }
+  .service-duration { font-size: 0.75rem; color: var(--ink-light); }
+  .service-card.featured .service-duration { color: rgba(255,255,255,0.6); }
+
+  .services-note {
+    margin-top: 2rem; padding: 1.25rem 1.75rem;
+    background: var(--gold-light); border: 1px solid #e8d4aa;
+    border-radius: var(--radius-lg); font-size: 0.875rem; color: var(--ink-mid); line-height: 1.7;
+  }
+  .services-note strong { color: var(--gold); }
+
+  /* ── PROCESS ── */
+  #process { background: var(--cream); }
+  .process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+  .process-grid::before {
+    content: ''; position: absolute;
+    top: 28px; left: calc(12.5% + 1rem); right: calc(12.5% + 1rem);
+    height: 1px; background: var(--cream-dark);
+  }
+  .process-step { text-align: center; padding: 0 1rem; }
+  .process-num {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 2px solid var(--cream-dark);
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 1.1rem; font-weight: 700; color: var(--green);
+    margin: 0 auto 1.25rem; position: relative; z-index: 1;
+  }
+  .process-step h4 { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; }
+  .process-step p { font-size: 0.8rem; color: var(--ink-mid); line-height: 1.6; }
+
+  /* ── ABOUT ── */
+  #about {
+    background: var(--white);
+  }
+  .about-inner {
+    display: grid; grid-template-columns: 1fr 1.2fr; gap: 5rem; align-items: center;
+  }
+  .about-photo {
+    aspect-ratio: 3/4; border-radius: var(--radius-lg);
+    background: var(--green-light);
+    overflow: hidden; position: relative;
+  }
+  .about-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .about-photo-badge {
+    position: absolute; bottom: 1.5rem; left: 1.5rem; right: 1.5rem;
+    background: var(--white); border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  .about-badge-name { font-weight: 500; font-size: 0.9rem; }
+  .about-badge-title { font-size: 0.78rem; color: var(--ink-light); }
+
+  .about-tag { display: inline-block; background: var(--green-light); color: var(--green); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.3rem 0.8rem; border-radius: 100px; margin-bottom: 1rem; font-weight: 500; }
+  .about-title { font-family: var(--serif); font-size: clamp(1.6rem, 2.5vw, 2.2rem); font-weight: 700; line-height: 1.3; margin-bottom: 1.25rem; }
+  .about-body { font-size: 0.95rem; color: var(--ink-mid); line-height: 1.8; margin-bottom: 2rem; }
+  .about-certs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+  .cert-pill {
+    background: var(--cream); border: 1px solid var(--cream-dark);
+    border-radius: 100px; padding: 0.3rem 0.85rem;
+    font-size: 0.75rem; color: var(--ink-mid); font-weight: 400;
+  }
+  .about-xp { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  .xp-card {
+    background: var(--cream); border-radius: var(--radius);
+    padding: 1rem; text-align: center;
+  }
+  .xp-num { font-family: var(--serif); font-size: 1.8rem; font-weight: 700; color: var(--green); }
+  .xp-label { font-size: 0.75rem; color: var(--ink-light); margin-top: 2px; }
+
+  /* ── TESTIMONIALS ── */
+  #testimonials { background: var(--cream); }
+  .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .testi-card {
+    background: var(--white); border: 1px solid var(--cream-dark);
+    border-radius: var(--radius-lg); padding: 1.75rem;
+  }
+  .testi-stars { color: var(--gold); font-size: 0.85rem; margin-bottom: 1rem; letter-spacing: 2px; }
+  .testi-text { font-size: 0.9rem; color: var(--ink-mid); line-height: 1.7; margin-bottom: 1.25rem; font-style: italic; }
+  .testi-author { display: flex; align-items: center; gap: 0.75rem; }
+  .testi-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 500; color: var(--green);
+  }
+  .testi-name { font-size: 0.85rem; font-weight: 500; }
+  .testi-role { font-size: 0.75rem; color: var(--ink-light); }
+
+  /* ── FAQ ── */
+  #faq { background: var(--white); }
+  .faq-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 5rem; }
+  .faq-list { display: flex; flex-direction: column; gap: 0; }
+  .faq-item { border-bottom: 1px solid var(--cream-dark); }
+  .faq-q {
+    padding: 1.1rem 0; display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; font-size: 0.9rem; font-weight: 500; color: var(--ink);
+    list-style: none; user-select: none;
+  }
+  .faq-q::after { content: '+'; color: var(--green); font-size: 1.2rem; font-weight: 300; }
+  .faq-a { font-size: 0.875rem; color: var(--ink-mid); line-height: 1.7; padding-bottom: 1.1rem; display: none; }
+  .faq-item.open .faq-q::after { content: '−'; }
+  .faq-item.open .faq-a { display: block; }
+
+  /* ── CONTACT ── */
+  #contact {
+    background: var(--ink);
+    color: var(--white);
+    padding: 6rem 2rem;
+  }
+  .contact-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: start;
+  }
+  .contact-label { display: inline-block; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.3rem 0.8rem; border-radius: 100px; margin-bottom: 1.25rem; }
+  .contact-title { font-family: var(--serif); font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 700; line-height: 1.25; margin-bottom: 1rem; }
+  .contact-body { font-size: 0.95rem; color: rgba(255,255,255,0.7); line-height: 1.75; margin-bottom: 2rem; }
+  .contact-details { display: flex; flex-direction: column; gap: 0.75rem; }
+  .contact-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: rgba(255,255,255,0.8); }
+  .contact-icon {
+    width: 36px; height: 36px; border-radius: var(--radius);
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+
+  .contact-form { display: flex; flex-direction: column; gap: 1rem; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label { font-size: 0.78rem; color: rgba(255,255,255,0.6); font-weight: 400; }
+  .form-group input, .form-group textarea, .form-group select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    color: var(--white);
+    font-family: var(--sans); font-size: 0.875rem;
+    outline: none; transition: border-color .2s;
+  }
+  .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.3); }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: rgba(255,255,255,0.4); }
+  .form-group select option { background: #1a2318; }
+  .form-group textarea { resize: vertical; min-height: 100px; }
+  .btn-form {
+    background: var(--white); color: var(--ink);
+    padding: 0.85rem 2rem; border-radius: 100px;
+    border: none; font-family: var(--sans); font-size: 0.875rem; font-weight: 500;
+    cursor: pointer; width: 100%; transition: background .2s;
+  }
+  .btn-form:hover { background: var(--cream); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #111a10; color: rgba(255,255,255,0.5);
+    padding: 2rem; text-align: center; font-size: 0.8rem;
+  }
+  footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
+  footer a:hover { color: rgba(255,255,255,0.9); }
+
+  /* ── FLOATING CTA ── */
+  .floating-cta {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 50;
+    background: var(--green); color: var(--white);
+    padding: 0.85rem 1.5rem; border-radius: 100px;
+    font-size: 0.875rem; font-weight: 500;
+    text-decoration: none; box-shadow: 0 4px 20px rgba(42,92,63,0.4);
+    transition: transform .2s, box-shadow .2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .floating-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(42,92,63,0.5); }
+  .floating-cta-dot { width: 8px; height: 8px; background: #7fd6a0; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── DIGITAL SERVICES ── */
+  .digital-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+  .digital-card {
+    background: var(--cream); border: 1px solid var(--cream-dark);
+    border-radius: var(--radius-lg); padding: 1.75rem;
+    transition: border-color .2s, transform .2s;
+  }
+  .digital-card:hover { border-color: var(--ink-light); transform: translateY(-2px); }
+  .digital-icon {
+    width: 48px; height: 48px; border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 1.1rem;
+  }
+  .digital-card h3 { font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem; }
+  .digital-card p { font-size: 0.83rem; color: var(--ink-mid); line-height: 1.6; margin-bottom: 1.1rem; }
+  .digital-price { font-family: var(--serif); font-size: 1.2rem; font-weight: 700; color: var(--ink); }
+  .digital-fin { font-size: 0.72rem; color: var(--green); font-weight: 500; margin-top: 2px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    section { padding: 4rem 1.25rem; }
+    .hero-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+    .hero-bg { width: 100%; clip-path: none; opacity: 0.3; }
+    .hero-sub { max-width: 100%; }
+    .about-inner, .insight-inner, .contact-inner, .faq-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    .process-grid { grid-template-columns: 1fr 1fr; }
+    .process-grid::before { display: none; }
+    .testi-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .floating-cta span.label { display: none; }
+    .about-xp { grid-template-columns: 1fr 1fr 1fr; }
+    nav .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Complexus Conseil</a>
+  <div class="nav-links">
+    <a href="#services">Nos offres</a>
+    <a href="#about">Qui sommes-nous</a>
+    <a href="#faq">FAQ</a>
+    <a href="#contact" class="nav-cta">Prendre RDV</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner container">
+    <div>
+      <div class="hero-label"><span class="hero-dot"></span> Consultant local — Paris 20e / 11e</div>
+      <h1>Votre entreprise mérite <em>mieux que la moyenne</em></h1>
+      <p class="hero-sub">
+        RSE, transformation digitale, accès aux financements : j'accompagne les dirigeants de TPE et PME qui veulent progresser, sans jargon et sans frais de structures.
+      </p>
+      <div class="btn-group">
+        <a href="https://calendar.app.google/MKiBmP3yRTsMztTy6" class="btn-primary">Réserver un appel gratuit</a>
+        <a href="#services" class="btn-ghost">Voir les offres →</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-card-label">Ce que vous pouvez obtenir</div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">15 k€</div>
+        <div class="hero-stat-text">de financement Bpifrance accessible via une démarche RSE formalisée (ex. rénovation boutique)</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">0 €</div>
+        <div class="hero-stat-text">de reste à charge possible sur votre transformation digitale via France Num et OPCO</div>
+      </div>
+      <hr class="hero-card-divider">
+      <div class="hero-items">
+        <div class="hero-item"><span class="hero-check"></span>Diagnostic RSE en 1 journée</div>
+        <div class="hero-item"><span class="hero-check"></span>Accompagnement sans jargon</div>
+        <div class="hero-item"><span class="hero-check"></span>Tarifs pensés pour les TPE</div>
+        <div class="hero-item"><span class="hero-check"></span>Basé dans le 20e, disponible rapidement</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS STRIP -->
+<div id="logos">
+  <div class="container">
+    <div class="logos-label">Expériences acquises au sein de</div>
+    <div class="logos-row">
+      <div class="logo-pill">🔶 Orange Business</div>
+      <div class="logo-pill">🌿 ABCSR</div>
+      <div class="logo-pill">📊 Proserve DASRI</div>
+      <div class="logo-pill">🏭 Papersong</div>
+      <div class="logo-pill">🎓 Montpellier Management</div>
+    </div>
+  </div>
+</div>
+
+<!-- INSIGHT BLOCK -->
+<section id="insight">
+  <div class="insight-inner container">
+    <div>
+      <div class="insight-tag">Pourquoi la RSE maintenant ?</div>
+      <h2 class="insight-title">La RSE n'est plus réservée aux <em>grandes entreprises</em></h2>
+      <p class="insight-body">
+        Depuis 2023, les aides publiques pour la transition écologique sont massivement orientées vers les TPE et PME. Les boulangeries, artisans, restaurants et commerces de proximité peuvent accéder à des prêts à taux bonifiés, des subventions ADEME ou des aides Région IDF — à condition d'avoir une démarche RSE documentée.<br><br>
+        Le problème : personne ne leur explique comment faire, simplement.
+      </p>
+    </div>
+    <div class="insight-cards">
+      <div class="insight-card">
+        <div class="insight-card-icon">💡</div>
+        <div>
+          <div class="insight-card-title">Prêt Vert Bpifrance</div>
+          <div class="insight-card-body">Jusqu'à 50 000€ pour financer une rénovation énergétique ou un équipement durable. Accessible aux TPE avec une démarche RSE formalisée.</div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-icon">🌱</div>
+        <div>
+          <div class="insight-card-title">Aide ADEME Île-de-France</div>
+          <div class="insight-card-body">Diagnostic et plan d'action énergie finançés jusqu'à 70% pour les PME franciliennes. Conditions : avoir un prestataire accompagnateur.</div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-icon">🏙️</div>
+        <div>
+          <div class="insight-card-title">Chèque Conseil Région IDF</div>
+          <div class="insight-card-body">500 à 1 500€ de prise en charge pour une mission de conseil RSE ou numérique. Cumulable avec France Num.</div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-icon">🔌</div>
+        <div>
+          <div class="insight-card-title">France Num — Conseiller Agréé</div>
+          <div class="insight-card-body">Subvention directe pour accompagner votre transformation numérique. Zéro avance de trésorerie dans la plupart des cas.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES RSE + DIGITAL -->
+<section id="services">
+  <div class="container">
+    <div class="section-label">Nos offres</div>
+    <h2 class="section-title">Des prestations claires,<br>pour des résultats concrets</h2>
+    <p class="section-sub">Pas d'abonnement caché, pas de jargon. Chaque prestation répond à une question simple : qu'est-ce que j'y gagne et combien ça coûte ?</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('rse', this)">🌿 Offre RSE</button>
+      <button class="tab" onclick="switchTab('digital', this)">💻 Offre Digitale</button>
+    </div>
+
+    <!-- RSE CARDS -->
+    <div id="tab-rse">
+      <div class="services-grid">
+        <div class="service-card">
+          <span class="service-tag">Découverte</span>
+          <h3>Formation RSE Dirigeant</h3>
+          <p class="service-desc">Un atelier de 2h pour comprendre les enjeux RSE, vos obligations légales et les opportunités financières disponibles pour votre secteur. Idéal pour démarrer.</p>
+          <div class="service-meta">
+            <div class="service-price">290 €</div>
+            <div class="service-duration">2 heures / sur site</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <span class="service-tag">Diagnostic</span>
+          <h3>Diagnostic RSE Flash</h3>
+          <p class="service-desc">Évaluation complète de votre niveau RSE actuel + rapport de 10 points prioritaires + recommandations actionnables. Une journée, un livrable clair.</p>
+          <div class="service-meta">
+            <div class="service-price">490 €</div>
+            <div class="service-duration">1 journée</div>
+          </div>
+        </div>
+        <div class="service-card featured">
+          <span class="service-tag">Populaire</span>
+          <h3>Pack RSE Démarrage</h3>
+          <p class="service-desc">Diagnostic complet + feuille de route RSE sur 12 mois + 2 sessions d'ateliers + rapport de synthèse. Le pack pour ceux qui veulent vraiment avancer.</p>
+          <div class="service-meta">
+            <div class="service-price">1 490 €</div>
+            <div class="service-duration">3 à 4 semaines</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <span class="service-tag">Financement</span>
+          <h3>Dossier Financement Vert</h3>
+          <p class="service-desc">Identification des aides disponibles (ADEME, Bpifrance, Région IDF), constitution du dossier, suivi de la demande. Le ROI moyen : 12 000€ obtenus.</p>
+          <div class="service-meta">
+            <div class="service-price">890 €</div>
+            <div class="service-duration">2 à 3 semaines</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <span class="service-tag">Reporting</span>
+          <h3>Rapport VSME</h3>
+          <p class="service-desc">Rédaction du rapport de durabilité simplifié (norme VSME – UE 2023) pour les PME soumises à la CSRD ou souhaitant répondre à des grands comptes.</p>
+          <div class="service-meta">
+            <div class="service-price">2 200 €</div>
+            <div class="service-duration">4 à 6 semaines</div>
+          </div>
+        </div>
+        <div class="service-card">
+          <span class="service-tag">Récurrent</span>
+          <h3>Retainer Mensuel RSE</h3>
+          <p class="service-desc">Suivi mensuel : indicateurs, veille réglementaire, reporting, 4h de conseil incluses. Pour progresser en continu sans gérer ça seul.</p>
+          <div class="service-meta">
+            <div class="service-price">490 €/mois</div>
+            <div class="service-duration">Engagement 3 mois min.</div>
+          </div>
+        </div>
+      </div>
+      <div class="services-note">
+        <strong>💡 Bon à savoir :</strong> Le Pack RSE Démarrage peut être partiellement financé via le Chèque Conseil TPE Région Île-de-France. Le Retainer RSE est déductible comme frais de conseil. <a href="#contact" style="color: var(--gold); font-weight: 500;">Demandez-moi comment →</a>
+      </div>
+    </div>
+
+    <!-- DIGITAL CARDS -->
+    <div id="tab-digital" style="display:none;">
+      <div class="digital-grid">
+        <div class="digital-card">
+          <div class="digital-icon" style="background: #e8f0e6;">🔍</div>
+          <h3>Audit Digital Flash</h3>
+          <p>Photo de vos outils actuels, identification des gaspillages et quick wins, rapport priorisé. Le point de départ logique.</p>
+          <div class="digital-price">490 €</div>
+          <div class="digital-fin">Finançable via France Num</div>
+        </div>
+        <div class="digital-card">
+          <div class="digital-icon" style="background: #e3f0fb;">☁️</div>
+          <h3>Déploiement Office 365 Starter</h3>
+          <p>Paramétrage Teams, SharePoint, OneDrive + formation équipe (jusqu'à 10 personnes). Fini les emails perdus.</p>
+          <div class="digital-price">1 290 €</div>
+          <div class="digital-fin">Finançable via OPCO jusqu'à 100%</div>
+        </div>
+        <div class="digital-card">
+          <div class="digital-icon" style="background: #fef6e3;">🎓</div>
+          <h3>Formation Outils Numériques</h3>
+          <p>Atelier pratique ciblé : Teams, Notion, Canva, ChatGPT Pro, etc. Maximum 8 personnes, format demi-journée.</p>
+          <div class="digital-price">490 €</div>
+          <div class="digital-fin">Éligible OPCO (jusqu'à 100% pris en charge)</div>
+        </div>
+        <div class="digital-card">
+          <div class="digital-icon" style="background: #fce8e3;">📋</div>
+          <h3>Benchmark Outils Collaboratifs</h3>
+          <p>Comparatif personnalisé des solutions du marché selon vos besoins et votre budget. Recommandation argumentée et indépendante.</p>
+          <div class="digital-price">690 €</div>
+          <div class="digital-fin">Finançable Chèque Numérique IDF</div>
+        </div>
+        <div class="digital-card">
+          <div class="digital-icon" style="background: #e8f0e6;">🔄</div>
+          <h3>Pack Accompagnement Changement</h3>
+          <p>Conduite du changement complète : diagnostic, plan de com, formation, suivi post-déploiement. Pour les projets structurants.</p>
+          <div class="digital-price">3 200 €</div>
+          <div class="digital-fin">Finançable en partie via Région IDF</div>
+        </div>
+        <div class="digital-card">
+          <div class="digital-icon" style="background: #f7f0e3;">📂</div>
+          <h3>Dossier France Num / OPCO</h3>
+          <p>Identification et montage du dossier de financement numérique le plus adapté à votre situation. Souvent rentable dès le premier rendez-vous.</p>
+          <div class="digital-price">350 €</div>
+          <div class="digital-fin">Souvent récupéré via les aides obtenues</div>
+        </div>
+      </div>
+      <div class="services-note">
+        <strong>💡 L'argument clé :</strong> Je vous aide à obtenir les financements <em>avant</em> de commencer — dans la majorité des cas, votre transformation digitale peut vous coûter 0€ de trésorerie. <a href="#contact" style="color: var(--gold); font-weight: 500;">En savoir plus →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process">
+  <div class="container">
+    <div style="text-align: center; margin-bottom: 3.5rem;">
+      <div class="section-label">Comment ça se passe ?</div>
+      <h2 class="section-title" style="max-width: 500px; margin: 0 auto 1rem;">Un accompagnement simple,<br>en 4 étapes</h2>
+    </div>
+    <div class="process-grid">
+      <div class="process-step">
+        <div class="process-num">1</div>
+        <h4>Appel découverte gratuit</h4>
+        <p>30 minutes pour comprendre votre situation et identifier les opportunités concrètes pour votre entreprise.</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">2</div>
+        <h4>Diagnostic sur mesure</h4>
+        <p>Analyse de votre situation actuelle, identification des leviers RSE ou digitaux les plus pertinents.</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">3</div>
+        <h4>Plan d'action co-construit</h4>
+        <p>Une feuille de route claire, priorisée, avec les financements mobilisables pour chaque action.</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">4</div>
+        <h4>Déploiement & suivi</h4>
+        <p>Mise en œuvre concrète, mesure des résultats, ajustement. Vous n'êtes jamais seul face à l'exécution.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-inner container">
+    <div class="about-photo">
+      <img src="https://complexusconseil.carrd.co/assets/images/image02.jpg" alt="Victor Potier" onerror="this.style.display='none'">
+      <div class="about-photo-badge">
+        <div class="about-badge-name">Victor Potier</div>
+        <div class="about-badge-title">Consultant RSE & Digital — Paris 20e</div>
+      </div>
+    </div>
+    <div>
+      <div class="about-tag">À propos</div>
+      <h2 class="about-title">Un consultant de quartier, pas une agence anonyme</h2>
+      <p class="about-body">
+        Après 6 ans dans des environnements exigeants — Orange Business, ABCSR (+200 clients PME), Proserve — j'ai créé Complexus Conseil pour une raison simple : les meilleures entreprises locales n'ont pas accès aux bons conseils, faute de budget ou de réseau.
+        <br><br>
+        Je suis basé rue de Bagnolet dans le 20e. Je travaille avec des dirigeants que je croise au marché, à la Fresque du Climat ou au comptoir du café du coin. La proximité, c'est ma proposition de valeur principale.
+      </p>
+      <div class="about-certs">
+        <span class="cert-pill">Green IT & Sustainable IT</span>
+        <span class="cert-pill">Eco-Conception UX Republic</span>
+        <span class="cert-pill">Safe & Scrum @Scale</span>
+        <span class="cert-pill">Qualiobee</span>
+        <span class="cert-pill">TOEIC 905/990</span>
+        <span class="cert-pill">Animateur Fresque du Climat</span>
+      </div>
+      <div class="about-xp">
+        <div class="xp-card">
+          <div class="xp-num">6+</div>
+          <div class="xp-label">ans d'expérience</div>
+        </div>
+        <div class="xp-card">
+          <div class="xp-num">200+</div>
+          <div class="xp-label">clients accompagnés</div>
+        </div>
+        <div class="xp-card">
+          <div class="xp-num">78k</div>
+          <div class="xp-label">salariés touchés</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CREDIBILITY — no testimonials needed -->
+<section id="testimonials">
+  <div class="container">
+    <div style="text-align: center; margin-bottom: 3.5rem;">
+      <div class="section-label">Pourquoi me faire confiance ?</div>
+      <h2 class="section-title">Une expertise construite sur le terrain,<br>pas en salle de réunion</h2>
+    </div>
+
+    <!-- Expériences clés -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem;">
+      <div class="testi-card" style="border-top: 3px solid var(--green);">
+        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); font-weight: 500; margin-bottom: 0.75rem;">Orange Business — 2022/2023</div>
+        <p class="testi-text" style="font-style: normal;">Accompagnement RSE et déploiement Office 365 auprès de plusieurs entités. Newsletter numérique responsable diffusée à <strong style="color: var(--ink);">78 000 salariés</strong>. Release Train Engineer sur un projet multi-entités de 300 personnes.</p>
+        <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <span style="background: var(--green-light); color: var(--green); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">RSE</span>
+          <span style="background: var(--green-light); color: var(--green); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">Change Management</span>
+          <span style="background: var(--green-light); color: var(--green); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">Office 365</span>
+        </div>
+      </div>
+      <div class="testi-card" style="border-top: 3px solid var(--gold);">
+        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); font-weight: 500; margin-bottom: 0.75rem;">ABCSR — 2023/2025</div>
+        <p class="testi-text" style="font-style: normal;">Création et restitution de rapports RSE auprès d'un portefeuille de <strong style="color: var(--ink);">+200 clients</strong>. Formation de +150 partenaires. Création de 20 KPI RSE en 2024. Management d'une communauté de 100 membres.</p>
+        <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <span style="background: var(--gold-light); color: var(--gold); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">Reporting RSE</span>
+          <span style="background: var(--gold-light); color: var(--gold); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">KPIs</span>
+          <span style="background: var(--gold-light); color: var(--gold); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">Formation</span>
+        </div>
+      </div>
+      <div class="testi-card" style="border-top: 3px solid var(--ink-light);">
+        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); font-weight: 500; margin-bottom: 0.75rem;">Proserve DASRI — 2025/2026</div>
+        <p class="testi-text" style="font-style: normal;">Audit complet des processus internes et mise en place d'un <strong style="color: var(--ink);">RACI organisationnel</strong> au sein de l'entreprise. Première mission Complexus Conseil, livrée en 5 mois.</p>
+        <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <span style="background: var(--cream-dark); color: var(--ink-mid); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">Audit processus</span>
+          <span style="background: var(--cream-dark); color: var(--ink-mid); font-size: 0.68rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-weight: 500;">Organisation</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Engagements personnels -->
+    <div style="background: var(--cream); border: 1px solid var(--cream-dark); border-radius: var(--radius-lg); padding: 2.5rem; display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: center;">
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-light); font-weight: 500; margin-bottom: 1rem;">Ce que je fais en dehors des missions</div>
+        <h3 style="font-family: var(--serif); font-size: 1.4rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.3;">La RSE, je la vis aussi<br>à titre personnel</h3>
+        <p style="font-size: 0.875rem; color: var(--ink-mid); line-height: 1.75;">
+          Associé chez <strong>Time For The Planet</strong>, j'investis dans des entreprises à impact. Animateur de la <strong>Fresque du Climat</strong>, je facilite des ateliers pour dirigeants et équipes. Ambassadeur <strong>Mon Atelier Eco-Frugal</strong>, j'accompagne des artisans locaux dans leur transition.
+          <br><br>
+          Ce n'est pas un CV à cocher — c'est pourquoi je fais ce métier.
+        </p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; background: var(--white); border-radius: var(--radius); padding: 1rem 1.25rem; border: 1px solid var(--cream-dark);">
+          <div style="width: 40px; height: 40px; background: var(--green-light); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">🌍</div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 500;">Time For The Planet</div>
+            <div style="font-size: 0.75rem; color: var(--ink-light);">Associé investisseur</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem; background: var(--white); border-radius: var(--radius); padding: 1rem 1.25rem; border: 1px solid var(--cream-dark);">
+          <div style="width: 40px; height: 40px; background: #e3f0e8; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">🎨</div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 500;">Fresque du Climat</div>
+            <div style="font-size: 0.75rem; color: var(--ink-light);">Animateur certifié</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem; background: var(--white); border-radius: var(--radius); padding: 1rem 1.25rem; border: 1px solid var(--cream-dark);">
+          <div style="width: 40px; height: 40px; background: var(--gold-light); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">♻️</div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 500;">Mon Atelier Eco-Frugal</div>
+            <div style="font-size: 0.75rem; color: var(--ink-light);">Ambassadeur</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bandeau "premiers clients" -->
+    <div style="margin-top: 2rem; background: var(--green); color: var(--white); border-radius: var(--radius-lg); padding: 2rem 2.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+      <div>
+        <div style="font-family: var(--serif); font-size: 1.3rem; font-weight: 700; margin-bottom: 0.4rem;">Je cherche mes 3 premiers clients pilotes dans le 20e et 11e.</div>
+        <div style="font-size: 0.875rem; color: rgba(255,255,255,0.78);">Tarif préférentiel en échange d'un retour d'expérience honnête. Diagnostic RSE Flash à 200€ (au lieu de 490€) pour les 3 premiers.</div>
+      </div>
+      <a href="#contact" class="btn-primary" style="background: var(--white); color: var(--green); white-space: nowrap;">Je suis intéressé →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <div class="faq-grid">
+      <div>
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Les questions qu'on me pose souvent</h2>
+        <p class="section-sub" style="margin-bottom: 0;">Pas de jargon dans les réponses — si quelque chose reste flou, appelez-moi.</p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item open">
+          <div class="faq-q" onclick="toggleFaq(this)">C'est quoi la RSE concrètement pour un boulanger ?</div>
+          <div class="faq-a">Pour un boulanger, la RSE c'est : mesurer et réduire votre consommation d'énergie (les fours représentent 30% des charges), documenter l'origine de vos farines, gérer les invendus de manière responsable. Ce n'est pas une case à cocher — c'est un levier pour accéder à des financements et attirer des clients qui font attention.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Est-ce que j'ai vraiment besoin d'un consultant pour ça ?</div>
+          <div class="faq-a">Non, vous pouvez tout faire seul. Mais le temps que vous passeriez à comprendre les dispositifs, rédiger les dossiers et suivre les demandes vaut souvent 3 à 5 fois le coût d'un accompagnement. Et surtout, sans expertise, vous passez à côté de financements que vous ne connaissez pas.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Je n'ai pas de budget. Comment je finance ça ?</div>
+          <div class="faq-a">C'est exactement pour ça que j'existe. La première chose que je fais avec un nouveau client, c'est identifier les financements disponibles pour sa situation. Dans la très grande majorité des cas, il existe des aides (Région IDF, Bpifrance, OPCO, France Num) qui couvrent tout ou partie du coût. Je commence souvent par le dossier de financement avant la mission.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Ça prend combien de temps ?</div>
+          <div class="faq-a">Un diagnostic RSE Flash prend 1 journée. Une feuille de route complète, 3 à 4 semaines. Les dossiers de financement, 2 à 3 semaines. Je suis basé dans le 20e, je peux me déplacer rapidement et sans frais de déplacement pour les clients du 11e et 20e.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Vous travaillez avec quels types d'entreprises ?</div>
+          <div class="faq-a">Principalement des TPE et PME dans les secteurs : commerce de proximité, artisanat, restauration, services, ESS. J'ai travaillé avec des structures de 2 à 300 personnes. La taille n'est pas le critère — c'est la volonté de progresser qui l'est.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">Quelle est la différence avec une grande agence de conseil ?</div>
+          <div class="faq-a">Trois choses : la proximité (je connais le 11e et le 20e, je connais vos contraintes locales), les tarifs (pas de frais de structure, de commerciaux, de middle management), et l'accessibilité (vous m'appelez, je décroche — pas d'interface client à remplir).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-inner">
+    <div>
+      <div class="contact-label">Passons à l'action</div>
+      <h2 class="contact-title">Un appel de 30 minutes,<br>gratuit et sans engagement</h2>
+      <p class="contact-body">
+        On se parle de votre situation concrète : où vous en êtes, ce qui vous freine, ce que vous pourriez obtenir. Si ça ne fait pas sens, on le dit aussi — pas de mission forcée.
+      </p>
+      <div class="contact-details">
+        <div class="contact-row"><div class="contact-icon">📍</div>153 rue de Bagnolet, 75020 Paris</div>
+        <div class="contact-row"><div class="contact-icon">📧</div>victor.potier@hotmail.fr</div>
+        <div class="contact-row"><div class="contact-icon">📞</div>+33 6 89 59 19 95</div>
+        <div class="contact-row"><div class="contact-icon">🔗</div>linkedin.com/company/complexusconseil</div>
+        <div class="contact-row"><div class="contact-icon">📅</div><a href="https://calendar.app.google/MKiBmP3yRTsMztTy6" style="color: rgba(255,255,255,0.8); text-decoration: underline;">Réserver directement sur Google Calendar</a></div>
+      </div>
+    </div>
+    <form class="contact-form" onsubmit="handleForm(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prénom</label>
+          <input type="text" placeholder="Marie">
+        </div>
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" placeholder="Dupont">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" placeholder="marie@maboulangerie.fr">
+      </div>
+      <div class="form-group">
+        <label>Votre secteur</label>
+        <select>
+          <option value="">— Sélectionner —</option>
+          <option>Boulangerie / Alimentation</option>
+          <option>Restauration / Café</option>
+          <option>Coiffure / Beauté</option>
+          <option>Artisan / Bâtiment</option>
+          <option>Commerce de détail</option>
+          <option>Services / Conseil</option>
+          <option>ESS / Association</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ce qui vous intéresse</label>
+        <select>
+          <option value="">— Sélectionner —</option>
+          <option>RSE &amp; Financement</option>
+          <option>Transformation Digitale</option>
+          <option>Les deux</option>
+          <option>Je ne sais pas encore</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Votre message (optionnel)</label>
+        <textarea placeholder="Dites-moi en quelques mots ce que vous cherchez ou ce qui vous pose question..."></textarea>
+      </div>
+      <button type="submit" class="btn-form">Envoyer ma demande →</button>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 Complexus Conseil — SIRET 98897962100014 — <a href="mailto:victor.potier@hotmail.fr">victor.potier@hotmail.fr</a> — Paris 20e</p>
+  <p style="margin-top: 0.5rem; font-size: 0.72rem;">Conçu pour les TPE et PME du 11e et 20e arrondissement de Paris</p>
+</footer>
+
+<!-- FLOATING CTA -->
+<a href="https://calendar.app.google/MKiBmP3yRTsMztTy6" class="floating-cta">
+  <span class="floating-cta-dot"></span>
+  <span class="label">Réserver un appel gratuit</span>
+</a>
+
+<script>
+function switchTab(name, btn) {
+  document.getElementById('tab-rse').style.display = name === 'rse' ? 'block' : 'none';
+  document.getElementById('tab-digital').style.display = name === 'digital' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleFaq(el) {
+  var item = el.parentElement;
+  var wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+function handleForm(e) {
+  e.preventDefault();
+  var btn = e.target.querySelector('.btn-form');
+  btn.textContent = '✓ Message envoyé — je vous réponds sous 24h';
+  btn.style.background = '#e8f0e6';
+  btn.style.color = '#2a5c3f';
+}
+
+// Scroll reveal
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.service-card, .digital-card, .testi-card, .insight-card, .process-step').forEach(function(el) {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>

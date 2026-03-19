@@ -1081,4 +1081,17 @@ var observer = new IntersectionObserver(function(entries) {
 }, { threshold: 0.1 });
 
 
-function openMentions()
+function openMentions() {
+  document.getElementById('mentionsOverlay').classList.add('open');
+}
+
+function closeMentions() {
+  document.getElementById('mentionsOverlay').classList.remove('open');
+}
+
+function closeMentionsOutside(e) {
+  if (e.target === document.getElementById('mentionsOverlay')) closeMentions();
+}
+</script>
+</body>
+</html>

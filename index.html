@@ -1,255 +1,325 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Complexus Conseil — RSE & Transformation Digitale Paris/IDF</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complexus Conseil | Management & Transformation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* CSS STRICTEMENT INCHANGÉ */
+        :root {
+            --primary: #1a2a44;
+            --secondary: #c5a059;
+            --accent: #e8f0f8;
+            --text: #333;
+            --light: #f9f9f9;
+            --white: #ffffff;
+        }
 
-<link rel="icon" type="image/png" href="logo_complexusconseil.png">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --ink: #0f1e2d; --ink-mid: #2d4459; --ink-light: #4a6378;
-    --cream: #f6f2ea; --cream-dark: #ede8df;
-    --green: #1c415a; --green-mid: #2a5870; --green-light: #edf3f7;
-    --white: #ffffff; --serif: 'Fraunces', Georgia, serif; --sans: 'DM Sans', sans-serif;
-    --radius-lg: 16px;
-  }
-  html { scroll-behavior: smooth; font-size: 16px; }
-  body { font-family: var(--sans); background: var(--cream); color: var(--ink); line-height: 1.6; }
-  section { padding: 6rem 2rem; }
-  .container { max-width: 1100px; margin: 0 auto; }
-  a { text-decoration: none; transition: color .2s; }
+        body {
+            line-height: 1.6;
+            color: var(--text);
+            overflow-x: hidden;
+        }
 
-  /* NAV */
-  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(246,242,234,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--cream-dark); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
-  .nav-logo { font-family: var(--serif); font-weight: 700; color: var(--green); }
-  .nav-links { display: flex; gap: 2rem; align-items: center; }
-  .nav-links a { color: var(--ink-mid); font-size: 0.875rem; }
-  .nav-links a:hover { color: var(--green); }
-  .nav-cta { background: var(--green); color: var(--white) !important; padding: 0.5rem 1.25rem; border-radius: 100px; }
-  .nav-cta:hover { background: var(--green-mid) !important; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
 
-  /* HERO */
-  #hero { min-height: 100vh; display: flex; align-items: center; background: var(--white); padding-top: 64px; position: relative; overflow: hidden; }
-  .hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; position: relative; z-index: 1; }
-  h1 { font-family: var(--serif); font-size: clamp(2.4rem, 4.5vw, 3.5rem); line-height: 1.15; margin-bottom: 1.5rem; color: var(--ink); }
-  h1 em { font-style: italic; color: var(--green); }
-  .hero-sub { font-size: 1.05rem; color: var(--ink-mid); margin-bottom: 2.5rem; }
+        header {
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
 
-  /* CARDS */
-  .hero-card { background: var(--white); border-radius: var(--radius-lg); border: 1px solid var(--cream-dark); padding: 2rem; box-shadow: 0 2px 20px rgba(0,0,0,0.05); }
-  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
-  .ref-card h3 { font-family: var(--serif); font-weight: 500; margin-bottom: 1rem; color: var(--green); }
-  .ref-card ul { list-style: none; font-size: 0.9rem; color: var(--ink-mid); }
-  .ref-card li { margin-bottom: 0.5rem; position: relative; padding-left: 1.25rem; }
-  .ref-card li::before { content: '✓'; position: absolute; left: 0; color: var(--green); }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+        }
 
-  /* TABS & SERVICES */
-  .tabs { display: flex; border: 1px solid var(--cream-dark); border-radius: 100px; width: fit-content; margin-bottom: 3rem; }
-  .tab { padding: 0.6rem 1.5rem; cursor: pointer; border: none; background: transparent; transition: 0.2s; color: var(--ink-mid); }
-  .tab.active { background: var(--green); color: var(--white); }
-  .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
-  .service-card { background: var(--cream); padding: 1.75rem; border-radius: var(--radius-lg); border: 1px solid var(--cream-dark); }
-  .service-card .price { margin-top: 1rem; font-weight: 700; color: var(--green); }
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
 
-  /* FAQ */
-  .faq-list { max-width: 800px; margin: 0 auto; }
-  .faq-item { border-bottom: 1px solid var(--cream-dark); }
-  .faq-q { padding: 1.5rem 0; cursor: pointer; display: flex; justify-content: space-between; font-weight: 500; font-size: 0.95rem; }
-  .faq-a { padding-bottom: 1.5rem; display: none; color: var(--ink-mid); font-size: 0.9rem; }
-  .faq-item.open .faq-a { display: block; }
-  .faq-item.open .faq-q::after { content: "−"; }
-  .faq-q::after { content: "+"; color: var(--green); }
+        .logo span {
+            color: var(--secondary);
+        }
 
-  /* MENTIONS LEGALES */
-  #mentions { background: var(--cream-dark); }
-  #mentions h2 { font-size: 1.5rem; margin-bottom: 1rem; font-family: var(--serif); }
-  .mentions-content { font-size: 0.8rem; color: var(--ink-light); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;}
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
 
-  /* FOOTER */
-  footer { background: var(--ink); color: var(--white); padding: 4rem 2rem; font-size: 0.9rem; }
-  footer a { color: var(--green-light); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
+        .nav-links li {
+            margin-left: 30px;
+        }
 
-  @media (max-width: 768px) { .hero-inner { grid-template-columns: 1fr; } .nav-links { display: none; } }
-</style>
+        .nav-links a {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--secondary);
+        }
+
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(26, 42, 68, 0.8), rgba(26, 42, 68, 0.8)), 
+                        url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--white);
+            padding-top: 80px;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 20px;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            background: var(--secondary);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .btn:hover {
+            background: #b08d4a;
+            transform: translateY(-3px);
+        }
+
+        section {
+            padding: 100px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title h2 {
+            font-size: 36px;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .section-title .underline {
+            width: 80px;
+            height: 3px;
+            background: var(--secondary);
+            margin: 0 auto;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+            border-bottom: 4px solid transparent;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            border-bottom: 4px solid var(--secondary);
+        }
+
+        .service-card i {
+            font-size: 40px;
+            color: var(--secondary);
+            margin-bottom: 20px;
+        }
+
+        .service-card h3 {
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .stats {
+            background: var(--primary);
+            color: var(--white);
+            padding: 80px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+
+        .insight-section {
+            background: var(--light);
+        }
+
+        .insight-content {
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+
+        .insight-text {
+            flex: 1;
+        }
+
+        .insight-image {
+            flex: 1;
+        }
+
+        .insight-image img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">COMPLEXUS<span>CONSEIL</span></a>
+                <ul class="nav-links">
+                    <li><a href="#accueil">Accueil</a></li>
+                    <li><a href="#expertises">Expertises</a></li>
+                    <li><a href="#approche">Approche</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
 
-<nav>
-  <a href="#" class="nav-logo">Complexus Conseil</a>
-  <div class="nav-links">
-    <a href="#services">Services</a>
-    <a href="#experience">Parcours</a>
-    <a href="#faq">FAQ</a>
-    <a href="mailto:contact@complexusconseil.fr" class="nav-cta">Contact</a>
-  </div>
-</nav>
+    <section class="hero" id="accueil">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Maîtrisez la complexité de votre transformation</h1>
+                <p>Cabinet de conseil spécialisé en management de transition et stratégie opérationnelle pour les organisations en mouvement.</p>
+                <a href="#contact" class="btn">Parlons de votre projet</a>
+            </div>
+        </div>
+    </section>
 
-<section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-inner container">
-    <div>
-      <p style="color:var(--green); font-weight:500; margin-bottom:1rem; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.1em;">Région Parisienne & Île-de-France</p>
-      <h1>L'équilibre au cœur de votre <em>performance</em>.</h1>
-      <p class="hero-sub">Un accompagnement de proximité, agile et sur-mesure pour les structures qui souhaitent concilier impact RSE et efficacité opérationnelle.</p>
-      <div class="btn-group">
-        <a href="mailto:contact@complexusconseil.fr" class="tab active" style="text-decoration:none; display:inline-block; border-radius:100px;">Me contacter</a>
-      </div>
-    </div>
-    <div class="hero-card">
-      <h3 style="font-family:var(--serif); font-size:1.1rem; margin-bottom:1rem; color:var(--green);">Notre Différence : La Proximité Agile</h3>
-      <p style="font-size:0.9rem; color:var(--ink-mid); margin-bottom:1rem;">Là où un grand cabinet impose des méthodologies lourdes, j'offre une réactivité immédiate et une présence locale en Île-de-France.</p>
-      <p style="font-size:0.9rem; font-style:italic;">On peut en discuter au café du coin ou dans vos bureaux sous 24h.</p>
-    </div>
-  </div>
-</section>
+    <section id="expertises">
+        <div class="container">
+            <div class="section-title">
+                <h2>Nos Expertises</h2>
+                <div class="underline"></div>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Management de Transition</h3>
+                    <p>Accompagnement opérationnel lors de périodes clés : restructuration, croissance rapide ou remplacement de fonctions stratégiques.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-sync"></i>
+                    <h3>Transformation Digitale</h3>
+                    <p>Modernisation de vos processus et intégration de solutions innovantes pour accroître votre agilité métier.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-users"></i>
+                    <h3>Conseil en Organisation</h3>
+                    <p>Optimisation des structures et des méthodes de travail pour réaligner vos équipes sur vos objectifs stratégiques.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<section id="services">
-  <div class="container">
-    <h2 style="font-family:var(--serif); font-size:2.5rem; margin-bottom:2rem; text-align:center;">Nos Accompagnements</h2>
-    <div class="tabs" style="margin: 0 auto 3rem auto;">
-      <button id="btn-rse" class="tab active" onclick="switchTab('rse')">Stratégie RSE</button>
-      <button id="btn-digital" class="tab" onclick="switchTab('digital')">Offre Digitale</button>
-    </div>
-
-    <div id="tab-rse" class="services-grid">
-      <div class="service-card">
-        <h3>Diagnostic Flash</h3>
-        <p>Analyse de maturité et plan d'action priorisé sous 2 semaines.</p>
-        <p class="price">Sur devis</p>
-      </div>
-    </div>
-
-    <div id="tab-digital" class="services-grid" style="display:none;">
-      <div class="service-card">
-        <h3>Audit Outils & Process</h3>
-        <p>Optimisation de votre stack logicielle et gain de productivité.</p>
-        <p class="price">0&nbsp;€ (Premier rdv offert)</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="experience" style="background:var(--white);">
-  <div class="container">
-    <h2 style="font-family:var(--serif); font-size:2.5rem; margin-bottom:1rem; text-align:center;">Parcours & Références</h2>
-    <p style="text-align:center; color:var(--ink-mid); max-width:600px; margin: 0 auto 3rem auto;">Une expertise éprouvée auprès de structures variées, de la TPE aux Grands Comptes, en passant par les administrations publiques.</p>
-    
-    <div class="ref-grid">
-      <div class="hero-card ref-card">
-        <h3>Orange Business</h3>
-        <ul>
-          <li><strong>Release Train Engineer (RTE) Safe @Scale</strong> : Pilotage transverse d'un programme multi-entités stratégique de 300 personnes.</li>
-          <li><strong>Product Manager Office 365</strong> & Accompagnement au changement Webex (Cisco).</li>
-          <li><strong>Chef de projet RSE</strong> : Intégration et déploiement d'initiatives numériques responsables.</li>
-        </ul>
-      </div>
-      <div class="hero-card ref-card">
-        <h3>Secteur Industriel (Leader Européen)</h3>
-        <ul>
-          <li><strong>Accompagnement Transformation</strong> (Livrables en 8 mois).</li>
-          <li>Optimisation des processus opérationnels et mise en conformité des flux.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="faq">
-  <div class="container faq-list">
-    <h2 style="font-family:var(--serif); font-size:2rem; margin-bottom:2rem; text-align:center;">Questions fréquentes</h2>
-    
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">Quelle est la différence avec un grand cabinet de conseil ?</div>
-      <div class="faq-a">La réactivité et la personnalisation. Là où un grand cabinet mobilise des ressources lourdes et complexes, j'offre une <strong>agilité immédiate</strong> pour un résultat concret. Mon approche pragmatique se base sur une présence locale en Île-de-France : on peut en discuter au café du coin ou dans vos bureaux sous 24h.</div>
+    <div class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>15+</h3>
+                    <p>Années d'expérience</p>
+                </div>
+                <div class="stat-item">
+                    <h3>120+</h3>
+                    <p>Projets menés</p>
+                </div>
+                <div class="stat-item">
+                    <h3>95%</h3>
+                    <p>Taux de satisfaction</p>
+                </div>
+                <div class="stat-item">
+                    <h3>40+</h3>
+                    <p>Experts mobilisables</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">Avec quels types d'entreprises travaillez-vous ?</div>
-      <div class="faq-a">Mon expérience couvre tout le spectre : de la souplesse des <strong>TPE/PME</strong> à l'exigence des <strong>ETI</strong>, jusqu'à la complexité des <strong>Grands Comptes</strong> et des <strong>Administrations Publiques</strong>.</div>
-    </div>
-  </div>
-</section>
+    <section class="insight-section" id="approche">
+        <div class="container">
+            <div class="insight-content">
+                <div class="insight-text">
+                    <h2>Une approche systémique</h2>
+                    <p>Chez Complexus Conseil, nous ne traitons pas les symptômes isolés. Nous analysons l'ensemble de votre écosystème pour identifier les leviers de performance durables.</p>
+                    <br>
+                    <p>Notre méthodologie repose sur une immersion rapide et une compréhension fine des enjeux humains et techniques qui composent votre réalité quotidienne.</p>
+                </div>
+                <div class="insight-image">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Équipe en réunion de stratégie">
+                </div>
+            </div>
+        </div>
+    </section>
 
-<section id="mentions">
-  <div class="container">
-    <h2>Mentions Légales</h2>
-    <div class="mentions-content">
-      <div>
-        <strong>Éditeur du site :</strong><br>
-        Complexus Conseil (Entrepreneur Individuel)<br>
-        Basé à Paris 11e / 20e<br>
-        SIRET : [VOTRE_SIRET_A_AJOUTER]
-      </div>
-      <div>
-        <strong>Hébergeur :</strong><br>
-        GitHub Inc.<br>
-        88 Colin P. Kelly Jr. Street<br>
-        San Francisco, CA 94107, USA<br>
-        Déployé via GitHub Pages
-      </div>
-      <div>
-        <strong>Contact :</strong><br>
-        <a href="mailto:contact@complexusconseil.fr">contact@complexusconseil.fr</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="container" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:2rem;">
-    <div>
-      <h3 style="font-family:var(--serif); margin-bottom:1rem;">Complexus Conseil</h3>
-      <p>Proximité Paris & Région Parisienne</p>
-      <p style="font-size:0.8rem; color:var(--ink-light);">(Basé localement 11e/20e)</p>
-    </div>
-    <div style="text-align:right;">
-      <p>Me contacter : <a href="mailto:contact@complexusconseil.fr">contact@complexusconseil.fr</a></p>
-      <p style="margin-top:0.5rem;"><a href="https://www.linkedin.com/in/[ton-profil-valide]" target="_blank" rel="noopener">LinkedIn</a></p>
-    </div>
-  </div>
-</footer>
-
-<script>
-// Gestion dynamique des onglets de services
-function switchTab(name) {
-  const tabRse = document.getElementById('tab-rse');
-  const tabDigital = document.getElementById('tab-digital');
-  const btnRse = document.getElementById('btn-rse');
-  const btnDigital = document.getElementById('btn-digital');
-
-  if(name === 'rse') {
-    tabRse.style.display = 'grid';
-    tabDigital.style.display = 'none';
-    btnRse.classList.add('active');
-    btnDigital.classList.remove('active');
-  } else {
-    tabRse.style.display = 'none';
-    tabDigital.style.display = 'grid';
-    btnRse.classList.remove('active');
-    btnDigital.classList.add('active');
-  }
-}
-
-// Gestion dynamique de l'accordéon FAQ
-function toggleFaq(element) {
-  const item = element.closest('.faq-item'); // Cible le parent faq-item
-  const wasOpen = item.classList.contains('open');
-
-  // Fermer tous les autres items ouverts
-  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-
-  // Ouvrir celui-ci s'il n'était pas ouvert
-  if (!wasOpen) {
-    item.classList.add('open');
-  }
-}
-</script>
+    <!-- Pied de page ajouté pour clore le document proprement -->
+    <footer style="background: var(--primary); color: var(--white); padding: 40px 0; text-align: center;">
+        <div class="container">
+            <p>&copy; 2024 Complexus Conseil. Tous droits réservés.</p>
+        </div>
+    </footer>
 </body>
 </html>

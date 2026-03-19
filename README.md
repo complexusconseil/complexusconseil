@@ -1,5 +1,7 @@
-## Hi there 👋
-
+# Complexus Conseil — Site vitrine
+Site statique déployé via GitHub Pages.
+URL : https://complexusconseil.github.io/complexusconseil/
+Stack : HTML/CSS/JS vanilla
 <!--
 **complexusconseil/complexusconseil** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 

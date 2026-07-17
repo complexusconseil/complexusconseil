@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#173D54">
+<title>Quiz Complexus — Trivia culture générale</title>
+<meta name="description" content="Quiz de culture générale à jouer directement depuis votre téléphone. Des centaines de questions variées, une interface simple.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23173D54'/%3E%3Ctext x='50' y='72' font-size='60' text-anchor='middle' fill='%23fff' font-family='Arial'%3E%3F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f2c3d;
+    --bg2:#173D54;
+    --card:#ffffff;
+    --ink:#12222c;
+    --muted:#5f6f7a;
+    --line:#e5e9ee;
+    --accent:#004BAD;
+    --accent2:#0a6fe0;
+    --good:#10b981;
+    --good-bg:#e7f8f1;
+    --bad:#ef4444;
+    --bad-bg:#fdecec;
+    --gold:#f5b301;
+    --font-d:'Montserrat',-apple-system,'Segoe UI',sans-serif;
+    --font-b:'Inter',-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font-b);
+    color:var(--ink);
+    background:linear-gradient(160deg,#0f2c3d 0%,#173D54 55%,#0d2532 100%);
+    background-attachment:fixed;
+    min-height:100vh;min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:560px;margin:0 auto;
+    min-height:100vh;min-height:100dvh;
+    display:flex;flex-direction:column;
+    padding:max(14px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));
+  }
+  .screen{flex:1;display:flex;flex-direction:column;justify-content:center;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---------- Accueil ---------- */
+  .brand{color:#cfe0ec;font-family:var(--font-d);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12px;text-align:center;margin-bottom:6px}
+  .home-card{background:var(--card);border-radius:26px;padding:30px 24px;box-shadow:0 22px 60px rgba(0,0,0,.35);text-align:center}
+  h1{font-family:var(--font-d);font-weight:800;font-size:34px;line-height:1.08;margin:6px 0 8px;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:15px;line-height:1.5;margin:0 auto 22px;max-width:340px}
+  .logo{width:74px;height:74px;border-radius:20px;background:linear-gradient(145deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;margin:0 auto 4px;box-shadow:0 10px 26px rgba(0,75,173,.4)}
+  .logo svg{width:40px;height:40px}
+  .field{text-align:left;margin-bottom:18px}
+  .field label{display:block;font-weight:600;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1.5px solid var(--line);background:#fff;color:var(--ink);font-family:var(--font-b);font-weight:600;font-size:14px;padding:9px 14px;border-radius:999px;cursor:pointer;transition:.15s}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn{width:100%;border:none;border-radius:16px;padding:17px;font-family:var(--font-d);font-weight:700;font-size:17px;cursor:pointer;transition:transform .1s,box-shadow .2s}
+  .btn:active{transform:scale(.98)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 12px 26px rgba(0,75,173,.38)}
+  .btn-ghost{background:#eef2f6;color:var(--ink)}
+  .stat-line{margin-top:16px;color:#9fb3c2;font-size:12.5px;text-align:center}
+
+  /* ---------- Jeu ---------- */
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .progress{flex:1;height:9px;background:rgba(255,255,255,.18);border-radius:99px;overflow:hidden}
+  .progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#ffd24d);border-radius:99px;transition:width .4s ease}
+  .pill{background:rgba(255,255,255,.14);color:#eaf2f8;font-weight:700;font-size:13px;padding:6px 11px;border-radius:99px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .pill.score{background:rgba(245,179,1,.2);color:#ffd875}
+  .qcard{background:var(--card);border-radius:24px;padding:24px 20px 20px;box-shadow:0 22px 55px rgba(0,0,0,.32)}
+  .cat{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-d);font-weight:700;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:#eaf1fb;padding:6px 11px;border-radius:99px;margin-bottom:16px}
+  .qnum{color:#a7b7c2;font-weight:600;font-size:13px;float:right;margin-top:5px}
+  .question{font-family:var(--font-d);font-weight:700;font-size:22px;line-height:1.28;margin:0 0 20px;letter-spacing:-.01em}
+  .answers{display:flex;flex-direction:column;gap:11px}
+  .ans{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:15px;padding:15px 15px;font-family:var(--font-b);font-weight:500;font-size:16px;color:var(--ink);cursor:pointer;transition:.15s;line-height:1.3}
+  .ans:active{transform:scale(.99)}
+  .ans .key{flex:0 0 27px;height:27px;border-radius:8px;background:#eef2f6;color:var(--muted);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .ans.correct{border-color:var(--good);background:var(--good-bg)}
+  .ans.correct .key{background:var(--good);color:#fff}
+  .ans.wrong{border-color:var(--bad);background:var(--bad-bg)}
+  .ans.wrong .key{background:var(--bad);color:#fff}
+  .ans.dim{opacity:.5}
+  .ans[disabled]{cursor:default}
+  .feedback{margin-top:16px;min-height:20px;font-size:14.5px;line-height:1.45;color:var(--muted)}
+  .feedback b{color:var(--ink)}
+  .next{margin-top:16px}
+  .next[hidden]{display:none}
+
+  /* ---------- Résultats ---------- */
+  .result-card{background:var(--card);border-radius:26px;padding:32px 24px;box-shadow:0 22px 60px rgba(0,0,0,.35);text-align:center}
+  .score-big{font-family:var(--font-d);font-weight:800;font-size:52px;line-height:1;color:var(--accent);letter-spacing:-.02em}
+  .score-sub{color:var(--muted);font-size:15px;margin:6px 0 20px}
+  .grade{font-family:var(--font-d);font-weight:800;font-size:22px;margin-bottom:6px}
+  .medal{font-size:56px;line-height:1;margin-bottom:8px}
+  .rstats{display:flex;gap:10px;margin:20px 0}
+  .rstat{flex:1;background:#f4f7f9;border-radius:16px;padding:14px 8px}
+  .rstat .n{font-family:var(--font-d);font-weight:800;font-size:22px}
+  .rstat .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .foot{color:#9fb3c2;font-size:11.5px;text-align:center;margin-top:16px}
+  .foot a{color:#cfe0ec}
+  @media(max-width:360px){h1{font-size:29px}.question{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ACCUEIL -->
+  <section class="screen" id="home">
+    <p class="brand">Complexus&nbsp;·&nbsp;Quiz</p>
+    <div class="home-card">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M9.1 9a3 3 0 1 1 4.2 2.7c-.9.4-1.3 1-1.3 2v.3" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.4" fill="#fff"/></svg></div>
+      <h1>Quiz culture&nbsp;générale</h1>
+      <p class="lead">Des centaines de questions variées. Choisissez un thème et enchaînez les manches. Parfait pour passer le temps.</p>
+
+      <div class="field">
+        <label>Thème</label>
+        <div class="chips" id="cats"></div>
+      </div>
+      <div class="field">
+        <label>Longueur de la manche</label>
+        <div class="chips" id="lens">
+          <button class="chip" data-len="10" aria-pressed="true">10 questions</button>
+          <button class="chip" data-len="20" aria-pressed="false">20 questions</button>
+          <button class="chip" data-len="0" aria-pressed="false">Infini ∞</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="startBtn">Commencer&nbsp;→</button>
+      <p class="stat-line" id="bankInfo"></p>
+    </div>
+  </section>
+
+  <!-- JEU -->
+  <section class="screen" id="game" hidden>
+    <div class="topbar">
+      <button class="pill" id="quitBtn" style="cursor:pointer">✕</button>
+      <div class="progress"><span id="bar"></span></div>
+      <div class="pill" id="streakPill">🔥 <span id="streak">0</span></div>
+      <div class="pill score">⭐ <span id="score">0</span></div>
+    </div>
+    <div class="qcard">
+      <span class="cat" id="qcat">Général</span>
+      <span class="qnum" id="qnum"></span>
+      <h2 class="question" id="qtext"></h2>
+      <div class="answers" id="answers"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn btn-primary next" id="nextBtn" hidden>Question suivante →</button>
+    </div>
+  </section>
+
+  <!-- RÉSULTATS -->
+  <section class="screen" id="result" hidden>
+    <div class="result-card">
+      <div class="medal" id="medal">🎉</div>
+      <div class="grade" id="grade"></div>
+      <div class="score-big"><span id="rScore">0</span></div>
+      <div class="score-sub"><span id="rPct">0</span>% de bonnes réponses</div>
+      <div class="rstats">
+        <div class="rstat"><div class="n" id="rGood" style="color:var(--good)">0</div><div class="l">Correctes</div></div>
+        <div class="rstat"><div class="n" id="rBad" style="color:var(--bad)">0</div><div class="l">Erreurs</div></div>
+        <div class="rstat"><div class="n" id="rBest" style="color:var(--gold)">0</div><div class="l">Meilleure série</div></div>
+      </div>
+      <button class="btn btn-primary" id="againBtn" style="margin-bottom:10px">Rejouer&nbsp;↻</button>
+      <button class="btn btn-ghost" id="menuBtn">Changer de thème</button>
+      <p class="foot">Record personnel : <b id="record">0</b> ⭐ · <a href="index.html">Complexus Conseil</a></p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ================= BANQUE DE QUESTIONS =================
+   Format : { q: question, a: [réponses], c: index correct, e: explication }
+   c = index de la bonne réponse dans a (avant mélange).            */
+const BANK = {
+"Histoire": [
+  {q:"En quelle année a eu lieu la Révolution française ?",a:["1789","1815","1750","1799"],c:0,e:"La prise de la Bastille date du 14 juillet 1789."},
+  {q:"Qui était le premier empereur des Français ?",a:["Louis XVI","Napoléon Bonaparte","Charlemagne","Napoléon III"],c:1,e:"Napoléon Ier est sacré empereur en 1804."},
+  {q:"Quelle civilisation a construit les pyramides de Gizeh ?",a:["Les Romains","Les Grecs","Les Égyptiens","Les Mayas"],c:2,e:"Elles datent de l'Ancien Empire égyptien, vers 2560 av. J.-C."},
+  {q:"En quelle année le mur de Berlin est-il tombé ?",a:["1989","1991","1985","1979"],c:0,e:"La chute du mur a eu lieu le 9 novembre 1989."},
+  {q:"Qui a peint le plafond de la chapelle Sixtine ?",a:["Léonard de Vinci","Raphaël","Michel-Ange","Botticelli"],c:2,e:"Michel-Ange l'a peint entre 1508 et 1512."},
+  {q:"Quel roi de France est surnommé le Roi-Soleil ?",a:["Louis XIV","François Ier","Henri IV","Louis IX"],c:0,e:"Louis XIV a régné 72 ans, un record."},
+  {q:"Quelle guerre s'est terminée en 1918 ?",a:["La guerre de Sécession","La Première Guerre mondiale","La Seconde Guerre mondiale","La guerre de Cent Ans"],c:1,e:"L'armistice a été signé le 11 novembre 1918."},
+  {q:"Qui a découvert l'Amérique en 1492 ?",a:["Vasco de Gama","Christophe Colomb","Magellan","Marco Polo"],c:1,e:"Colomb atteint les Antilles pour la couronne espagnole."},
+  {q:"Quel empire était dirigé depuis Constantinople ?",a:["L'Empire romain d'Occident","L'Empire byzantin","L'Empire ottoman","Les deux : byzantin puis ottoman"],c:3,e:"Byzance jusqu'en 1453, puis capitale ottomane."},
+  {q:"Quelle reine d'Égypte s'est alliée à César et Marc Antoine ?",a:["Néfertiti","Cléopâtre","Hatchepsout","Isis"],c:1,e:"Cléopâtre VII, dernière souveraine de la dynastie ptolémaïque."},
+  {q:"En quelle année l'homme a-t-il marché sur la Lune ?",a:["1969","1972","1961","1965"],c:0,e:"Apollo 11, le 20 juillet 1969."},
+  {q:"Qui a rédigé la théorie de la relativité ?",a:["Isaac Newton","Albert Einstein","Galilée","Nikola Tesla"],c:1,e:"Einstein publie la relativité restreinte en 1905."},
+  {q:"Quelle dynastie a construit la Grande Muraille de Chine ?",a:["Elle a plusieurs bâtisseurs, surtout les Ming","Uniquement les Han","Les Qing seuls","Les Tang"],c:0,e:"Débutée sous les Qin, l'essentiel visible est Ming."},
+  {q:"Qui était Jeanne d'Arc ?",a:["Une reine de France","Une héroïne de la guerre de Cent Ans","Une exploratrice","Une peintre"],c:1,e:"Elle a libéré Orléans en 1429, brûlée en 1431."},
+  {q:"Quel événement marque le début de la Seconde Guerre mondiale en Europe ?",a:["Pearl Harbor","L'invasion de la Pologne","Le débarquement","La bataille d'Angleterre"],c:1,e:"L'Allemagne envahit la Pologne le 1er septembre 1939."},
+  {q:"Quelle ville fut la capitale de l'Empire romain ?",a:["Athènes","Rome","Alexandrie","Carthage"],c:1,e:"Rome, avant le transfert vers Constantinople."},
+  {q:"Qui a proclamé « Je vous ai compris » en 1958 ?",a:["Charles de Gaulle","Georges Pompidou","Léon Blum","Jean Jaurès"],c:0,e:"De Gaulle à Alger, pendant la guerre d'Algérie."},
+  {q:"Quel traité a mis fin à la Première Guerre mondiale ?",a:["Traité de Rome","Traité de Versailles","Traité de Vienne","Traité de Tordesillas"],c:1,e:"Signé en 1919 dans la galerie des Glaces."},
+  {q:"Quelle civilisation précolombienne vivait au Pérou ?",a:["Les Aztèques","Les Incas","Les Mayas","Les Olmèques"],c:1,e:"L'Empire inca, avec le Machu Picchu."},
+  {q:"En quelle année la Déclaration des droits de l'homme fut-elle adoptée ?",a:["1789","1804","1848","1791"],c:0,e:"Adoptée le 26 août 1789."},
+],
+"Géographie": [
+  {q:"Quelle est la capitale de l'Australie ?",a:["Sydney","Melbourne","Canberra","Perth"],c:2,e:"Canberra, et non Sydney comme on le croit souvent."},
+  {q:"Quel est le plus long fleuve du monde ?",a:["L'Amazone","Le Nil","Le Mississippi","Le Yangtsé"],c:1,e:"Le Nil, environ 6 650 km (débat serré avec l'Amazone)."},
+  {q:"Combien de continents compte la Terre ?",a:["5","6","7","8"],c:2,e:"Sept dans le modèle courant : Afrique, Amériques (x2), Asie, Europe, Océanie, Antarctique."},
+  {q:"Quel pays est le plus vaste du monde ?",a:["Canada","Chine","États-Unis","Russie"],c:3,e:"La Russie, plus de 17 millions de km²."},
+  {q:"Quelle est la capitale du Japon ?",a:["Kyoto","Osaka","Tokyo","Nagoya"],c:2,e:"Tokyo, capitale depuis 1868."},
+  {q:"Quel désert est le plus grand du monde (désert chaud) ?",a:["Gobi","Sahara","Kalahari","Atacama"],c:1,e:"Le Sahara, plus de 9 millions de km²."},
+  {q:"Quel océan est le plus vaste ?",a:["Atlantique","Indien","Pacifique","Arctique"],c:2,e:"Le Pacifique couvre un tiers de la planète."},
+  {q:"Sur quel continent se trouve l'Égypte ?",a:["Asie","Afrique","Europe","À cheval Afrique/Asie"],c:3,e:"Surtout en Afrique, avec le Sinaï en Asie."},
+  {q:"Quelle est la plus haute montagne du monde ?",a:["K2","Mont Blanc","Everest","Kilimandjaro"],c:2,e:"L'Everest culmine à 8 849 m."},
+  {q:"Quelle mer sépare l'Europe de l'Afrique ?",a:["Mer Rouge","Mer Méditerranée","Mer Noire","Mer Caspienne"],c:1,e:"La Méditerranée."},
+  {q:"Quel pays possède le plus grand nombre d'habitants ?",a:["Chine","Inde","États-Unis","Indonésie"],c:1,e:"L'Inde a dépassé la Chine en 2023."},
+  {q:"Quelle est la capitale du Canada ?",a:["Toronto","Montréal","Ottawa","Vancouver"],c:2,e:"Ottawa, en Ontario."},
+  {q:"Quel fleuve traverse Paris ?",a:["La Loire","Le Rhône","La Seine","La Garonne"],c:2,e:"La Seine."},
+  {q:"Dans quel pays se trouve le Machu Picchu ?",a:["Mexique","Pérou","Bolivie","Chili"],c:1,e:"Au Pérou, cité inca à 2 430 m d'altitude."},
+  {q:"Quel pays a la forme d'une botte ?",a:["Grèce","Espagne","Italie","Portugal"],c:2,e:"L'Italie."},
+  {q:"Quelle est la capitale de l'Espagne ?",a:["Barcelone","Madrid","Séville","Valence"],c:1,e:"Madrid."},
+  {q:"Quel est le plus petit pays du monde ?",a:["Monaco","Vatican","Saint-Marin","Malte"],c:1,e:"Le Vatican, 0,44 km²."},
+  {q:"Quel détroit sépare l'Europe de l'Afrique à l'ouest ?",a:["Bosphore","Gibraltar","Ormuz","Malacca"],c:1,e:"Le détroit de Gibraltar, 14 km."},
+  {q:"Quelle chaîne de montagnes sépare la France de l'Espagne ?",a:["Les Alpes","Les Pyrénées","Le Jura","Les Vosges"],c:1,e:"Les Pyrénées."},
+  {q:"Quel pays compte le plus de fuseaux horaires ?",a:["Russie","États-Unis","France","Chine"],c:2,e:"La France, grâce à ses territoires d'outre-mer : 12 fuseaux."},
+],
+"Sciences": [
+  {q:"Quel est le symbole chimique de l'or ?",a:["Or","Au","Ag","Go"],c:1,e:"Au, du latin aurum."},
+  {q:"Combien de planètes compte le système solaire ?",a:["7","8","9","10"],c:1,e:"Huit depuis le reclassement de Pluton en 2006."},
+  {q:"Quel gaz les plantes absorbent-elles pour la photosynthèse ?",a:["Oxygène","Azote","Dioxyde de carbone","Hydrogène"],c:2,e:"Le CO₂, et elles rejettent de l'oxygène."},
+  {q:"Quel est l'organe qui pompe le sang ?",a:["Le foie","Le cœur","Les poumons","Les reins"],c:1,e:"Le cœur."},
+  {q:"Quelle est la vitesse de la lumière (approx.) ?",a:["300 000 km/s","150 000 km/s","1 000 km/s","3 000 km/s"],c:0,e:"Environ 299 792 km/s dans le vide."},
+  {q:"Combien d'os compte le corps humain adulte ?",a:["206","150","300","98"],c:0,e:"206 os chez l'adulte."},
+  {q:"Quel scientifique a formulé la loi de la gravitation ?",a:["Einstein","Newton","Darwin","Galilée"],c:1,e:"Isaac Newton, au XVIIe siècle."},
+  {q:"Quelle planète est surnommée la planète rouge ?",a:["Vénus","Jupiter","Mars","Saturne"],c:2,e:"Mars, à cause de l'oxyde de fer."},
+  {q:"Quel est l'élément le plus abondant dans l'univers ?",a:["Oxygène","Hydrogène","Carbone","Hélium"],c:1,e:"L'hydrogène, environ 75 % de la matière ordinaire."},
+  {q:"Quelle particule a une charge négative ?",a:["Proton","Neutron","Électron","Photon"],c:2,e:"L'électron."},
+  {q:"Quel organe produit l'insuline ?",a:["Le foie","Le pancréas","La rate","L'estomac"],c:1,e:"Le pancréas."},
+  {q:"À quelle température l'eau bout-elle au niveau de la mer ?",a:["90 °C","100 °C","120 °C","80 °C"],c:1,e:"100 °C à pression atmosphérique normale."},
+  {q:"Quel savant a proposé la théorie de l'évolution ?",a:["Mendel","Pasteur","Darwin","Lamarck"],c:2,e:"Charles Darwin, avec « L'Origine des espèces » (1859)."},
+  {q:"De quoi l'ADN est-il le support ?",a:["De l'énergie","De l'information génétique","De la digestion","De l'immunité"],c:1,e:"L'ADN porte le code génétique."},
+  {q:"Quelle est l'unité de mesure du courant électrique ?",a:["Volt","Watt","Ampère","Ohm"],c:2,e:"L'ampère (A)."},
+  {q:"Quel est le métal liquide à température ambiante ?",a:["Plomb","Mercure","Fer","Zinc"],c:1,e:"Le mercure."},
+  {q:"Combien de chromosomes possède l'être humain ?",a:["23","46","48","44"],c:1,e:"46 chromosomes, soit 23 paires."},
+  {q:"Quel astre est au centre du système solaire ?",a:["La Terre","La Lune","Le Soleil","Jupiter"],c:2,e:"Le Soleil, une étoile."},
+  {q:"Quel gaz respirons-nous majoritairement dans l'air ?",a:["Oxygène","Azote","CO₂","Hélium"],c:1,e:"L'azote représente 78 % de l'air."},
+  {q:"Qu'étudie la sismologie ?",a:["Les volcans","Les tremblements de terre","Les étoiles","Les océans"],c:1,e:"Les séismes et la propagation des ondes."},
+],
+"Sport": [
+  {q:"Tous les combien d'années ont lieu les Jeux olympiques d'été ?",a:["2 ans","3 ans","4 ans","5 ans"],c:2,e:"Tous les 4 ans."},
+  {q:"Combien de joueurs compte une équipe de football sur le terrain ?",a:["9","10","11","12"],c:2,e:"Onze, gardien compris."},
+  {q:"Quel pays a remporté la Coupe du monde de football 2018 ?",a:["Brésil","France","Allemagne","Croatie"],c:1,e:"La France, en Russie."},
+  {q:"Dans quel sport marque-t-on un « ace » ?",a:["Football","Tennis","Basket","Rugby"],c:1,e:"Au tennis, service gagnant non touché."},
+  {q:"Combien de points vaut un panier à trois points au basket ?",a:["2","3","1","4"],c:1,e:"Trois points."},
+  {q:"Quel est le Grand Chelem de tennis joué sur terre battue ?",a:["Wimbledon","US Open","Roland-Garros","Open d'Australie"],c:2,e:"Roland-Garros, à Paris."},
+  {q:"Quel sportif est surnommé « la Puce » au football ?",a:["Cristiano Ronaldo","Lionel Messi","Neymar","Mbappé"],c:1,e:"Lionel Messi, « la Pulga »."},
+  {q:"Combien de trous compte un parcours de golf classique ?",a:["9","18","24","12"],c:1,e:"18 trous."},
+  {q:"Quel pays a inventé le judo ?",a:["Chine","Corée","Japon","Thaïlande"],c:2,e:"Le Japon, par Jigorō Kanō en 1882."},
+  {q:"Dans le Tour de France, quel maillot porte le leader ?",a:["Vert","Jaune","À pois","Blanc"],c:1,e:"Le maillot jaune."},
+  {q:"Quel sport pratique-t-on à Roland-Garros ?",a:["Golf","Tennis","Escrime","Athlétisme"],c:1,e:"Le tennis."},
+  {q:"Combien de temps dure un match de football réglementaire ?",a:["60 min","80 min","90 min","120 min"],c:2,e:"90 minutes en deux mi-temps."},
+  {q:"Quel nageur a le plus de médailles olympiques de l'histoire ?",a:["Mark Spitz","Michael Phelps","Ian Thorpe","Florent Manaudou"],c:1,e:"Michael Phelps, 28 médailles."},
+  {q:"Dans quel sport utilise-t-on un volant ?",a:["Tennis de table","Badminton","Squash","Padel"],c:1,e:"Le badminton."},
+  {q:"Quelle discipline combine tir et ski de fond ?",a:["Biathlon","Combiné nordique","Skeleton","Curling"],c:0,e:"Le biathlon."},
+  {q:"Combien de joueurs dans une équipe de rugby à XV ?",a:["13","15","11","7"],c:1,e:"Quinze joueurs."},
+  {q:"Quel boxeur se surnommait « The Greatest » ?",a:["Mike Tyson","Muhammad Ali","Floyd Mayweather","George Foreman"],c:1,e:"Muhammad Ali."},
+  {q:"Dans quelle ville se sont tenus les JO d'été 2024 ?",a:["Tokyo","Paris","Los Angeles","Rio"],c:1,e:"Paris."},
+],
+"Cinéma & séries": [
+  {q:"Qui a réalisé le film « Titanic » (1997) ?",a:["Steven Spielberg","James Cameron","Ridley Scott","Christopher Nolan"],c:1,e:"James Cameron."},
+  {q:"Dans « Star Wars », qui est le père de Luke Skywalker ?",a:["Obi-Wan","Yoda","Dark Vador","Palpatine"],c:2,e:"Dark Vador (Anakin Skywalker)."},
+  {q:"Quel acteur incarne Jack Sparrow ?",a:["Orlando Bloom","Johnny Depp","Brad Pitt","Tom Cruise"],c:1,e:"Johnny Depp."},
+  {q:"Quelle série met en scène le chimiste Walter White ?",a:["The Wire","Breaking Bad","Better Call Saul","Ozark"],c:1,e:"Breaking Bad."},
+  {q:"Quel film d'animation raconte l'histoire de Simba ?",a:["Le Livre de la jungle","Le Roi Lion","Tarzan","Bambi"],c:1,e:"Le Roi Lion."},
+  {q:"Qui joue Neo dans « Matrix » ?",a:["Keanu Reeves","Will Smith","Tom Hardy","Hugh Jackman"],c:0,e:"Keanu Reeves."},
+  {q:"Dans quel film entend-on « Que la Force soit avec toi » ?",a:["Star Trek","Star Wars","Dune","Avatar"],c:1,e:"Star Wars."},
+  {q:"Quelle série se déroule à Westeros ?",a:["Vikings","Game of Thrones","The Witcher","Rome"],c:1,e:"Game of Thrones."},
+  {q:"Qui a réalisé « Pulp Fiction » ?",a:["Martin Scorsese","Quentin Tarantino","Coen","David Fincher"],c:1,e:"Quentin Tarantino."},
+  {q:"Quel super-héros est aussi Bruce Wayne ?",a:["Superman","Batman","Spider-Man","Iron Man"],c:1,e:"Batman."},
+  {q:"Quel film a remporté l'Oscar du meilleur film en 2020 (coréen) ?",a:["1917","Parasite","Joker","Roma"],c:1,e:"Parasite, de Bong Joon-ho."},
+  {q:"Dans « Le Seigneur des anneaux », qui doit détruire l'Anneau ?",a:["Aragorn","Gandalf","Frodon","Legolas"],c:2,e:"Frodon Sacquet."},
+  {q:"Quelle actrice incarne Hermione dans « Harry Potter » ?",a:["Emma Stone","Emma Watson","Emma Roberts","Keira Knightley"],c:1,e:"Emma Watson."},
+  {q:"Quel réalisateur est connu pour « Inception » et « Interstellar » ?",a:["Denis Villeneuve","Christopher Nolan","Ridley Scott","J.J. Abrams"],c:1,e:"Christopher Nolan."},
+  {q:"Quelle série d'animation suit la famille Simpson ?",a:["Family Guy","Les Simpson","Futurama","South Park"],c:1,e:"Les Simpson, créée par Matt Groening."},
+  {q:"Quel film met en scène un requin tueur en 1975 ?",a:["Piranha","Les Dents de la mer","Deep Blue Sea","Océan"],c:1,e:"Les Dents de la mer (Jaws), de Spielberg."},
+  {q:"Qui a réalisé « Amélie Poulain » ?",a:["Luc Besson","Jean-Pierre Jeunet","François Ozon","Michel Hazanavicius"],c:1,e:"Jean-Pierre Jeunet, en 2001."},
+  {q:"Quelle plateforme a produit « Stranger Things » ?",a:["HBO","Netflix","Disney+","Amazon"],c:1,e:"Netflix."},
+],
+"Musique": [
+  {q:"Quel groupe a chanté « Bohemian Rhapsody » ?",a:["The Beatles","Queen","Rolling Stones","Pink Floyd"],c:1,e:"Queen, en 1975."},
+  {q:"Combien de cordes possède une guitare classique ?",a:["4","6","7","5"],c:1,e:"Six cordes."},
+  {q:"Quel est le vrai prénom de Lady Gaga ?",a:["Stefani","Robyn","Alecia","Katheryn"],c:0,e:"Stefani Germanotta."},
+  {q:"Quel compositeur, devenu sourd, a écrit la 9e Symphonie ?",a:["Mozart","Bach","Beethoven","Chopin"],c:2,e:"Ludwig van Beethoven."},
+  {q:"Quel instrument possède 88 touches ?",a:["Orgue","Piano","Accordéon","Clavecin"],c:1,e:"Le piano."},
+  {q:"Quel chanteur est surnommé « le King » du rock ?",a:["Michael Jackson","Elvis Presley","Chuck Berry","David Bowie"],c:1,e:"Elvis Presley."},
+  {q:"Quel groupe britannique comptait Lennon et McCartney ?",a:["The Who","The Beatles","Oasis","The Kinks"],c:1,e:"The Beatles."},
+  {q:"Quel style musical est né à La Nouvelle-Orléans ?",a:["Le rap","Le jazz","La techno","Le reggae"],c:1,e:"Le jazz, début XXe siècle."},
+  {q:"Quelle chanteuse a interprété « Rolling in the Deep » ?",a:["Beyoncé","Adele","Rihanna","Amy Winehouse"],c:1,e:"Adele."},
+  {q:"Combien de musiciens dans un quatuor ?",a:["3","4","5","2"],c:1,e:"Quatre."},
+  {q:"De quel pays vient le reggae ?",a:["Cuba","Jamaïque","Brésil","Sénégal"],c:1,e:"La Jamaïque, popularisé par Bob Marley."},
+  {q:"Quel DJ français a composé « One More Time » (Daft Punk) ?",a:["David Guetta","Daft Punk","Justice","Martin Solveig"],c:1,e:"Daft Punk."},
+  {q:"Quel instrument à vent est associé au jazz de Miles Davis ?",a:["Saxophone","Trompette","Clarinette","Trombone"],c:1,e:"La trompette."},
+  {q:"Quelle est la note qui suit « do » dans la gamme ?",a:["mi","ré","fa","sol"],c:1,e:"Ré."},
+  {q:"Quel chanteur britannique a écrit « Imagine » ?",a:["Paul McCartney","John Lennon","Elton John","Freddie Mercury"],c:1,e:"John Lennon, en 1971."},
+  {q:"Quel opéra de Bizet se déroule à Séville ?",a:["La Traviata","Carmen","Aïda","Tosca"],c:1,e:"Carmen."},
+],
+"Arts & littérature": [
+  {q:"Qui a peint « La Joconde » ?",a:["Raphaël","Léonard de Vinci","Rembrandt","Vermeer"],c:1,e:"Léonard de Vinci, vers 1503."},
+  {q:"Qui a écrit « Les Misérables » ?",a:["Émile Zola","Victor Hugo","Balzac","Flaubert"],c:1,e:"Victor Hugo, en 1862."},
+  {q:"Quel peintre s'est coupé une oreille ?",a:["Monet","Van Gogh","Picasso","Gauguin"],c:1,e:"Vincent van Gogh."},
+  {q:"Qui a écrit « Roméo et Juliette » ?",a:["Molière","Shakespeare","Racine","Voltaire"],c:1,e:"William Shakespeare."},
+  {q:"Quel mouvement Picasso a-t-il cofondé ?",a:["L'impressionnisme","Le cubisme","Le surréalisme","Le romantisme"],c:1,e:"Le cubisme, avec Braque."},
+  {q:"Qui a écrit « Le Petit Prince » ?",a:["Jules Verne","Saint-Exupéry","Camus","Proust"],c:1,e:"Antoine de Saint-Exupéry, 1943."},
+  {q:"Quel sculpteur a réalisé « Le Penseur » ?",a:["Rodin","Michel-Ange","Giacometti","Camille Claudel"],c:0,e:"Auguste Rodin."},
+  {q:"Quel écrivain russe a écrit « Guerre et Paix » ?",a:["Dostoïevski","Tolstoï","Tchekhov","Gogol"],c:1,e:"Léon Tolstoï."},
+  {q:"Dans quel musée est exposée « La Joconde » ?",a:["Prado","Louvre","Ouffizi","MoMA"],c:1,e:"Au Louvre, à Paris."},
+  {q:"Qui a écrit la saga « Harry Potter » ?",a:["J.R.R. Tolkien","J.K. Rowling","Stephen King","George R.R. Martin"],c:1,e:"J.K. Rowling."},
+  {q:"Quel courant artistique est associé à Monet ?",a:["Cubisme","Impressionnisme","Fauvisme","Dadaïsme"],c:1,e:"L'impressionnisme."},
+  {q:"Qui a écrit « L'Étranger » ?",a:["Sartre","Camus","Malraux","Gide"],c:1,e:"Albert Camus, 1942."},
+  {q:"Quel peintre espagnol a réalisé « Guernica » ?",a:["Dalí","Picasso","Miró","Goya"],c:1,e:"Pablo Picasso, 1937."},
+  {q:"Qui est l'auteur des « Fables » (le Corbeau et le Renard) ?",a:["Perrault","La Fontaine","Molière","Ésope"],c:1,e:"Jean de La Fontaine."},
+  {q:"Quel artiste a peint des nénuphars célèbres ?",a:["Renoir","Monet","Degas","Cézanne"],c:1,e:"Claude Monet."},
+  {q:"Quel roman de Cervantès met en scène un chevalier rêveur ?",a:["Don Quichotte","Candide","Gargantua","Robinson"],c:0,e:"Don Quichotte de la Manche."},
+],
+"Nature & animaux": [
+  {q:"Quel est le plus grand animal terrestre ?",a:["Rhinocéros","Éléphant d'Afrique","Girafe","Hippopotame"],c:1,e:"L'éléphant d'Afrique."},
+  {q:"Combien de pattes possède une araignée ?",a:["6","8","10","12"],c:1,e:"Huit pattes (ce n'est pas un insecte)."},
+  {q:"Quel est le plus grand mammifère marin ?",a:["Orque","Baleine bleue","Cachalot","Requin baleine"],c:1,e:"La baleine bleue, jusqu'à 30 m."},
+  {q:"Quel animal est le plus rapide sur terre ?",a:["Lion","Guépard","Antilope","Cheval"],c:1,e:"Le guépard, jusqu'à 110 km/h."},
+  {q:"De quelle couleur est le sang d'une pieuvre ?",a:["Rouge","Bleu","Vert","Incolore"],c:1,e:"Bleu, à cause de l'hémocyanine (cuivre)."},
+  {q:"Quel oiseau ne peut pas voler ?",a:["Aigle","Autruche","Faucon","Hirondelle"],c:1,e:"L'autruche."},
+  {q:"Combien de cœurs possède une pieuvre ?",a:["1","2","3","4"],c:2,e:"Trois cœurs."},
+  {q:"Quel est le plus grand félin sauvage ?",a:["Lion","Tigre","Jaguar","Léopard"],c:1,e:"Le tigre de Sibérie."},
+  {q:"Quel animal est symbole de la sagesse ?",a:["Le renard","Le hibou","Le corbeau","Le serpent"],c:1,e:"Le hibou / la chouette."},
+  {q:"Comment appelle-t-on un groupe de loups ?",a:["Un troupeau","Une meute","Une horde","Une colonie"],c:1,e:"Une meute."},
+  {q:"Quel insecte produit le miel ?",a:["La guêpe","L'abeille","Le bourdon","La fourmi"],c:1,e:"L'abeille."},
+  {q:"Quel reptile peut changer de couleur ?",a:["Le gecko","Le caméléon","L'iguane","Le varan"],c:1,e:"Le caméléon."},
+  {q:"Combien de temps dure la gestation d'un éléphant ?",a:["9 mois","14 mois","22 mois","6 mois"],c:2,e:"Environ 22 mois, la plus longue des mammifères terrestres."},
+  {q:"Quel animal hiberne l'hiver ?",a:["Le renard","La marmotte","Le cerf","Le lièvre"],c:1,e:"La marmotte."},
+  {q:"Quel est le seul mammifère capable de voler ?",a:["L'écureuil volant","La chauve-souris","Le colibri","Le pangolin"],c:1,e:"La chauve-souris (l'écureuil ne fait que planer)."},
+  {q:"Quel arbre produit les glands ?",a:["Le hêtre","Le chêne","Le châtaignier","Le platane"],c:1,e:"Le chêne."},
+  {q:"Quel animal est le plus proche génétiquement de l'humain ?",a:["Le gorille","Le chimpanzé","L'orang-outan","Le gibbon"],c:1,e:"Le chimpanzé, ~98,8 % d'ADN commun."},
+  {q:"Quelle est la couleur d'un flamant rose à la naissance ?",a:["Rose","Gris","Blanc","Rouge"],c:1,e:"Gris ; le rose vient de son alimentation."},
+],
+"Technologie & IA": [
+  {q:"Que signifie « IA » ?",a:["Interface avancée","Intelligence artificielle","Information active","Innovation assistée"],c:1,e:"Intelligence artificielle."},
+  {q:"Quelle société a créé l'iPhone ?",a:["Samsung","Apple","Google","Nokia"],c:1,e:"Apple, en 2007."},
+  {q:"Que signifie « www » ?",a:["World Wide Web","Web Work World","Wide Web Way","World Web Wire"],c:0,e:"World Wide Web."},
+  {q:"Quel langage est surtout utilisé pour l'IA et la data ?",a:["PHP","Python","HTML","CSS"],c:1,e:"Python."},
+  {q:"Qui a cofondé Microsoft ?",a:["Steve Jobs","Bill Gates","Mark Zuckerberg","Elon Musk"],c:1,e:"Bill Gates, avec Paul Allen."},
+  {q:"Que mesure-t-on en octets ?",a:["La vitesse","La mémoire / données","La luminosité","La fréquence"],c:1,e:"La quantité de données."},
+  {q:"Quel réseau social a été créé par Mark Zuckerberg ?",a:["Twitter","Facebook","LinkedIn","Snapchat"],c:1,e:"Facebook, en 2004."},
+  {q:"Que veut dire « GPS » ?",a:["Global Position System","Global Positioning System","General Position Service","Ground Point Signal"],c:1,e:"Global Positioning System."},
+  {q:"Quel est le moteur de recherche le plus utilisé au monde ?",a:["Bing","Google","Yahoo","DuckDuckGo"],c:1,e:"Google."},
+  {q:"Qu'est-ce qu'un « chatbot » ?",a:["Un virus","Un agent conversationnel","Un jeu vidéo","Un réseau"],c:1,e:"Un programme qui dialogue en langage naturel."},
+  {q:"Quelle unité mesure la fréquence d'un processeur ?",a:["Le watt","Le hertz","Le volt","Le pixel"],c:1,e:"Le hertz (GHz pour les CPU)."},
+  {q:"Que signifie « URL » ?",a:["Uniform Resource Locator","Universal Reading Link","User Route Line","Unified Reference Label"],c:0,e:"Uniform Resource Locator : l'adresse web."},
+  {q:"Quelle entreprise a développé le moteur de recherche Android ?",a:["Apple","Google","Microsoft","Samsung"],c:1,e:"Google (Android est son système mobile)."},
+  {q:"Qu'appelle-t-on le « cloud » ?",a:["Un logiciel antivirus","Le stockage/serveurs distants","Une puce","Un câble réseau"],c:1,e:"L'informatique et le stockage à distance."},
+  {q:"Quelle technologie sécurise les cryptomonnaies ?",a:["Le cloud","La blockchain","Le Wi-Fi","Le Bluetooth"],c:1,e:"La blockchain, registre distribué."},
+  {q:"Que signifie « HTTP » (le S en plus le sécurise) ?",a:["HyperText Transfer Protocol","High Transfer Text Program","Home Tool Transfer Page","Hyper Terminal Transfer"],c:0,e:"HyperText Transfer Protocol."},
+],
+"Culture générale": [
+  {q:"Combien de côtés a un hexagone ?",a:["5","6","7","8"],c:1,e:"Six côtés."},
+  {q:"Quelle est la monnaie du Japon ?",a:["Le yuan","Le yen","Le won","Le baht"],c:1,e:"Le yen."},
+  {q:"Combien de couleurs compte un arc-en-ciel ?",a:["5","6","7","9"],c:2,e:"Sept couleurs traditionnellement."},
+  {q:"Quel est le chiffre romain pour 50 ?",a:["L","C","D","X"],c:0,e:"L pour 50."},
+  {q:"Quelle langue compte le plus de locuteurs natifs ?",a:["Anglais","Mandarin","Espagnol","Hindi"],c:1,e:"Le mandarin."},
+  {q:"Combien y a-t-il de minutes dans une journée ?",a:["1 440","720","2 400","960"],c:0,e:"1 440 minutes (24 × 60)."},
+  {q:"Quel organe humain peut se régénérer ?",a:["Le cœur","Le foie","Le cerveau","Les poumons"],c:1,e:"Le foie."},
+  {q:"Quel est le plus grand océan intérieur (mer fermée) ?",a:["Mer Morte","Mer Caspienne","Mer d'Aral","Lac Baïkal"],c:1,e:"La mer Caspienne."},
+  {q:"Combien de cartes dans un jeu de 52 ?",a:["48","52","54","32"],c:1,e:"52 (54 avec les jokers)."},
+  {q:"Quelle planète est la plus proche du Soleil ?",a:["Vénus","Mercure","Mars","Terre"],c:1,e:"Mercure."},
+  {q:"Quel est le symbole de l'infini ?",a:["∞","Ω","Σ","∆"],c:0,e:"∞, un huit couché."},
+  {q:"Combien de temps met la Terre à faire le tour du Soleil ?",a:["24 h","1 mois","365 jours","28 jours"],c:2,e:"Environ 365,25 jours."},
+  {q:"Quelle épice est la plus chère au monde ?",a:["Vanille","Safran","Cardamome","Poivre"],c:1,e:"Le safran."},
+  {q:"Combien de dents a un adulte (sans dents de sagesse) ?",a:["28","30","32","24"],c:0,e:"28 dents (32 avec les dents de sagesse)."},
+  {q:"Quel drapeau est entièrement rouge avec une étoile et un croissant… non : lequel est bleu-blanc-rouge vertical ?",a:["Italie","Allemagne","France","Belgique"],c:2,e:"La France (bandes verticales bleu-blanc-rouge)."},
+  {q:"Quelle est la capitale de l'Italie ?",a:["Milan","Rome","Naples","Turin"],c:1,e:"Rome."},
+  {q:"Combien font 7 × 8 ?",a:["54","56","58","64"],c:1,e:"56."},
+  {q:"Quel métal est le meilleur conducteur d'électricité ?",a:["Cuivre","Argent","Or","Aluminium"],c:1,e:"L'argent, devant le cuivre."},
+  {q:"Quelle est la langue officielle du Brésil ?",a:["Espagnol","Portugais","Français","Anglais"],c:1,e:"Le portugais."},
+  {q:"Combien de zéros dans un million ?",a:["5","6","7","9"],c:1,e:"Six zéros."},
+],
+"Gastronomie": [
+  {q:"De quel pays le sushi est-il originaire ?",a:["Chine","Japon","Corée","Thaïlande"],c:1,e:"Le Japon."},
+  {q:"Quel ingrédient principal compose le guacamole ?",a:["Courgette","Avocat","Concombre","Épinard"],c:1,e:"L'avocat."},
+  {q:"De quelle région vient le champagne ?",a:["Bordeaux","Champagne","Bourgogne","Alsace"],c:1,e:"La Champagne, en France."},
+  {q:"Quel fromage italien garnit la pizza margherita ?",a:["Parmesan","Mozzarella","Gorgonzola","Ricotta"],c:1,e:"La mozzarella."},
+  {q:"Quelle épice donne sa couleur jaune au curry ?",a:["Paprika","Curcuma","Safran","Cumin"],c:1,e:"Le curcuma."},
+  {q:"De quel pays vient la paella ?",a:["Italie","Espagne","Portugal","Grèce"],c:1,e:"L'Espagne (Valence)."},
+  {q:"Quel fruit est à la base du vin ?",a:["Pomme","Raisin","Prune","Poire"],c:1,e:"Le raisin."},
+  {q:"Comment appelle-t-on un chef pâtissier réputé pour le chocolat ?",a:["Chocolatier","Boulanger","Traiteur","Sommelier"],c:0,e:"Un chocolatier."},
+  {q:"Quel plat japonais consiste en des nouilles dans un bouillon ?",a:["Sushi","Ramen","Tempura","Maki"],c:1,e:"Le ramen."},
+  {q:"Quel ingrédient fait lever le pain ?",a:["Le sel","La levure","Le sucre","L'huile"],c:1,e:"La levure."},
+  {q:"De quel pays vient le tajine ?",a:["Maroc","Grèce","Liban","Turquie"],c:0,e:"Le Maghreb, notamment le Maroc."},
+  {q:"Quelle boisson est faite à partir de feuilles infusées ?",a:["Le café","Le thé","Le cacao","Le jus"],c:1,e:"Le thé."},
+  {q:"Quel légume fait pleurer quand on le coupe ?",a:["L'ail","L'oignon","Le poireau","L'échalote"],c:1,e:"L'oignon."},
+  {q:"Quel dessert français est une crème caramélisée au chalumeau ?",a:["Éclair","Crème brûlée","Mille-feuille","Macaron"],c:1,e:"La crème brûlée."},
+  {q:"Quel pays est le plus grand producteur de café ?",a:["Colombie","Brésil","Éthiopie","Vietnam"],c:1,e:"Le Brésil."},
+  {q:"Quelle pâte est utilisée pour les croissants ?",a:["Pâte brisée","Pâte feuilletée levée","Pâte sablée","Pâte à choux"],c:1,e:"La pâte feuilletée levée (viennoise)."},
+],
+};
+
+/* ================= LOGIQUE ================= */
+const $ = s => document.querySelector(s);
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const KEYS = ["A","B","C","D"];
+const CAT_ICON = {"Histoire":"🏛️","Géographie":"🌍","Sciences":"🔬","Sport":"⚽","Cinéma & séries":"🎬","Musique":"🎵","Arts & littérature":"🎨","Nature & animaux":"🐾","Technologie & IA":"💻","Culture générale":"💡","Gastronomie":"🍽️"};
+
+let state = {};
+
+// total questions
+const TOTAL = Object.values(BANK).reduce((n,a)=>n+a.length,0);
+$("#bankInfo").textContent = `${TOTAL} questions · ${Object.keys(BANK).length} thèmes`;
+
+// build category chips
+const catBox = $("#cats");
+["Mélange 🎲", ...Object.keys(BANK)].forEach((name,i)=>{
+  const b=document.createElement("button");
+  b.className="chip"; b.textContent = i===0 ? name : `${CAT_ICON[name]||""} ${name}`;
+  b.dataset.cat = i===0 ? "__all__" : name;
+  b.setAttribute("aria-pressed", i===0 ? "true":"false");
+  b.onclick=()=>{ catBox.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); };
+  catBox.appendChild(b);
+});
+// length chips
+$("#lens").querySelectorAll(".chip").forEach(b=>{
+  b.onclick=()=>{ $("#lens").querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); };
+});
+
+function getSelected(box){ return box.querySelector('[aria-pressed="true"]'); }
+
+function buildDeck(cat){
+  let list=[];
+  if(cat==="__all__"){ Object.entries(BANK).forEach(([k,arr])=>arr.forEach(q=>list.push({...q,cat:k}))); }
+  else { BANK[cat].forEach(q=>list.push({...q,cat})); }
+  return shuffle(list);
+}
+
+function startGame(){
+  const cat = getSelected(catBox).dataset.cat;
+  const len = parseInt(getSelected($("#lens")).dataset.len,10);
+  const deck = buildDeck(cat);
+  state = { deck, len: len===0?deck.length:Math.min(len,deck.length), infinite: len===0,
+            i:0, score:0, good:0, bad:0, streak:0, best:0 };
+  show("game"); render();
+}
+
+function show(id){ ["home","game","result"].forEach(s=>$("#"+s).hidden = s!==id); }
+
+function render(){
+  const q = state.deck[state.i];
+  $("#qcat").textContent = `${CAT_ICON[q.cat]||"💡"} ${q.cat}`;
+  $("#qnum").textContent = state.infinite ? `#${state.i+1}` : `${state.i+1}/${state.len}`;
+  $("#qtext").textContent = q.q;
+  $("#score").textContent = state.score;
+  $("#streak").textContent = state.streak;
+  $("#bar").style.width = state.infinite ? "100%" : `${(state.i/state.len)*100}%`;
+  $("#feedback").textContent = "";
+  $("#feedback").style.color = "var(--muted)";
+  $("#nextBtn").hidden = true;
+
+  // prepare shuffled answers keeping track of correct
+  const opts = q.a.map((text,idx)=>({text,correct:idx===q.c}));
+  shuffle(opts);
+  const box = $("#answers"); box.innerHTML="";
+  opts.forEach((o,idx)=>{
+    const btn=document.createElement("button");
+    btn.className="ans";
+    btn.innerHTML=`<span class="key">${KEYS[idx]}</span><span>${o.text}</span>`;
+    btn.onclick=()=>choose(btn,o.correct,box,q);
+    box.appendChild(btn);
+  });
+}
+
+function choose(btn,correct,box,q){
+  [...box.children].forEach(b=>{ b.disabled=true; b.onclick=null; });
+  if(correct){
+    btn.classList.add("correct");
+    state.score += 10 + Math.min(state.streak,5)*2; // bonus série
+    state.good++; state.streak++; state.best=Math.max(state.best,state.streak);
+    $("#feedback").innerHTML = `✅ <b>Bonne réponse !</b> ${q.e||""}`;
+    $("#feedback").style.color = "var(--good)";
+  } else {
+    btn.classList.add("wrong");
+    state.bad++; state.streak=0;
+    // reveal correct
+    [...box.children].forEach(b=>{ if(b.querySelector("span:last-child").textContent===q.a[q.c]) b.classList.add("correct"); else if(b!==btn) b.classList.add("dim"); });
+    $("#feedback").innerHTML = `❌ <b>Raté.</b> ${q.e||""}`;
+    $("#feedback").style.color = "var(--ink)";
+  }
+  $("#score").textContent = state.score;
+  $("#streak").textContent = state.streak;
+  if(navigator.vibrate) navigator.vibrate(correct?18:[10,40,10]);
+
+  const last = !state.infinite && state.i+1>=state.len;
+  const btnNext=$("#nextBtn");
+  btnNext.textContent = last ? "Voir mes résultats →" : "Question suivante →";
+  btnNext.hidden=false;
+  btnNext.onclick=()=>{
+    state.i++;
+    if(state.infinite && state.i>=state.deck.length){ state.deck=buildDeck(getSelected(catBox).dataset.cat); state.i=0; }
+    if(last) endGame(); else render();
+  };
+}
+
+function endGame(){
+  show("result");
+  const answered = state.good+state.bad;
+  const pct = answered? Math.round(state.good/answered*100):0;
+  $("#rScore").textContent = state.score;
+  $("#rPct").textContent = pct;
+  $("#rGood").textContent = state.good;
+  $("#rBad").textContent = state.bad;
+  $("#rBest").textContent = state.best;
+  let medal="🎯", grade="Pas mal !";
+  if(pct>=90){medal="🏆";grade="Génie de la culture G !";}
+  else if(pct>=70){medal="🥇";grade="Excellent !";}
+  else if(pct>=50){medal="🥈";grade="Bien joué !";}
+  else if(pct>=30){medal="🥉";grade="Ça vient…";}
+  else {medal="📚";grade="À réviser !";}
+  $("#medal").textContent=medal; $("#grade").textContent=grade;
+  // record
+  let rec = 0; try{ rec = parseInt(localStorage.getItem("quiz_record")||"0",10);}catch(e){}
+  if(state.score>rec){ rec=state.score; try{localStorage.setItem("quiz_record",rec);}catch(e){} }
+  $("#record").textContent = rec;
+}
+
+// events
+$("#startBtn").onclick = startGame;
+$("#againBtn").onclick = startGame;
+$("#menuBtn").onclick = ()=>show("home");
+$("#quitBtn").onclick = ()=>{ if(state.good+state.bad>0) endGame(); else show("home"); };
+
+// show record on home if exists
+try{ const r=parseInt(localStorage.getItem("quiz_record")||"0",10); if(r>0) $("#record").textContent=r; }catch(e){}
+</script>
+</body>
+</html>

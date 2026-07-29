@@ -2,7 +2,7 @@
 User-agent: *
 Allow: /
 
-# Generative AI crawlers (GEO)
+# Robots des moteurs génératifs
 User-agent: GPTBot
 Allow: /
 

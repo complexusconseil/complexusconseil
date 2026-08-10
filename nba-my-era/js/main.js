@@ -360,15 +360,25 @@ const Game = {
     const userResult = champ === s.userTeam ? 'Champion'
       : (runnerUp === s.userTeam ? 'Finaliste'
       : (s._userInPlayoffs ? 'Playoffs' : 'Non qualifié'));
+
+    // Récompenses individuelles (stats de saison régulière encore intactes)
+    const aw = seasonAwards(s);
+    if (aw.pack && aw.winners) {
+      const give = (x, label) => { if (x && x.p) x.p.awards.unshift({ season: s.season, label }); };
+      give(aw.winners.mvp, 'MVP');
+      give(aw.winners.dpoy, 'Défenseur de l\'année');
+      give(aw.winners.sixth, '6e homme');
+      give(aw.winners.mip, 'Progression (MIP)');
+      give(aw.winners.roy, 'Rookie de l\'année');
+      if (aw.winners.mvp) this.log(`🏅 MVP ${s.season} : ${aw.winners.mvp.p.name} (${teamById(aw.winners.mvp.team).name}).`);
+    }
+
     s.history.unshift({
-      season: s.season,
-      era: s.eraId,
-      champion: champ,
-      runnerUp,
-      userTeam: s.userTeam,
-      userW: ut.w, userL: ut.l,
-      userResult,
+      season: s.season, era: s.eraId,
+      champion: champ, runnerUp,
+      userTeam: s.userTeam, userW: ut.w, userL: ut.l, userResult,
       leader,
+      awards: aw.pack || null,
     });
     this.startOffseason();
   },
@@ -524,6 +534,7 @@ const Game = {
   _assignPick(slot, p) {
     const s = this.state;
     p.prospect = false; delete p.scout; delete p._noise;
+    p.draftedSeason = s.season + 1;   // saison de début NBA (pour le trophée de rookie)
     slot.pickId = p.id; slot.pickName = p.name; slot.pickPos = p.pos; slot.pickOvr = p.ovr;
     const team = s.teams[slot.teamId];
     team.roster.push(p);

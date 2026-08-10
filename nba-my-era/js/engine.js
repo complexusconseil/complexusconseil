@@ -99,7 +99,9 @@ function makePlayer(pos, opts = {}) {
     stats: emptyStats(),
     // Historique carrière (par saison)
     history: [],
-    injuryGames: 0,   // matchs d'indisponibilité restants (blessure)
+    awards: [],           // récompenses individuelles [{season, label}]
+    draftedSeason: null,  // saison de début NBA (pour le trophée de meilleur rookie)
+    injuryGames: 0,       // matchs d'indisponibilité restants (blessure)
     _injuryDesc: null,
   };
   p.ovr = overall(p);
@@ -707,6 +709,56 @@ function aiConsiderTrade(gameState) {
   const evalRes = aiEvaluateTrade(gameState, otherId, userGives, userGets);
   if (!evalRes.ok) return null;
   return { partner: otherId, userGives, userGets };
+}
+
+/* ------------------------- Récompenses de saison ------------------------- */
+// Calcule les trophées individuels d'après les stats de saison régulière.
+function seasonAwards(gameState) {
+  const all = [];
+  Object.values(gameState.teams).forEach(t => {
+    const winPct = (t.w + t.l) ? t.w / (t.w + t.l) : 0.5;
+    const starters = new Set(Object.values(t.lineup));
+    t.roster.forEach(p => {
+      const s = p.stats; if (s.gp < 15) return;
+      const gp = s.gp;
+      const ppg = s.pts / gp, rpg = (s.oreb + s.dreb) / gp, apg = s.ast / gp;
+      const spg = s.stl / gp, bpg = s.blk / gp, tpg = s.tov / gp;
+      const prod = ppg + rpg * 1.2 + apg * 1.5 + (spg + bpg) * 2 - tpg * 0.5;
+      const prevLast = p.history.length ? p.history[p.history.length - 1] : null;
+      const prevPpg = (prevLast && prevLast.gp) ? prevLast.pts / prevLast.gp : null;
+      all.push({
+        p, team: t.id, gp, ppg, rpg, apg, spg, bpg, prod,
+        mvp: prod * (0.6 + 0.55 * winPct),
+        def: spg * 2 + bpg * 2.6 + p.defense * 0.07,
+        starter: starters.has(p.id),
+        prevPpg, mip: prevPpg != null ? (ppg - prevPpg) + (prod - (prevLast.pts / prevLast.gp)) * 0.2 : -999,
+      });
+    });
+  });
+  if (!all.length) return { pack: null };
+  const top = (arr, key) => [...arr].sort((a, b) => b[key] - a[key])[0];
+  const fmt = x => x ? { name: x.p.name, team: x.team, id: x.p.id,
+    line: `${round1(x.ppg)} pts · ${round1(x.rpg)} reb · ${round1(x.apg)} pas` } : null;
+
+  const mvp = top(all, 'mvp');
+  const dpoy = top(all, 'def');
+  const sixth = top(all.filter(x => !x.starter), 'mvp') || null;
+  const mipCand = all.filter(x => x.prevPpg != null && x.ppg >= 12 && x.mip > 2.5);
+  const mip = mipCand.length ? top(mipCand, 'mip') : null;
+  // Rookie de l'année : uniquement de vrais rookies (joueurs draftés débutant cette saison)
+  const royCand = all.filter(x => x.p.draftedSeason === gameState.season);
+  const roy = royCand.length ? top(royCand, 'prod') : null;
+
+  const nStars = gameState.confMode === 'single' ? 10 : 24;
+  const allStars = [...all].sort((a, b) => b.mvp - a.mvp).slice(0, nStars).map(fmt);
+  const allNBA = POSITIONS.map(pos => {
+    const best = top(all.filter(x => x.p.pos === pos), 'mvp'); return best ? Object.assign(fmt(best), { pos }) : null;
+  }).filter(Boolean);
+
+  return {
+    pack: { mvp: fmt(mvp), dpoy: fmt(dpoy), sixth: fmt(sixth), mip: mip ? fmt(mip) : null, roy: roy ? fmt(roy) : null, allStars, allNBA },
+    winners: { mvp, dpoy, sixth, mip, roy },
+  };
 }
 
 /* ------------------------------ Intersaison ------------------------------ */

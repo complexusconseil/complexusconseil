@@ -574,18 +574,39 @@ const UI = {
     const rows = (s.history || []).map(h => {
       const ch = teamById(h.champion);
       const pill = h.userResult === 'Champion' ? 'win' : h.userResult === 'Non qualifié' ? 'loss' : '';
+      const mvp = h.awards && h.awards.mvp ? h.awards.mvp.name : '—';
       return `<tr>
         <td>${h.season}</td>
         <td class="name">${this.badge(h.champion,20)} ${ch.city} ${ch.name}</td>
         <td class="name">${h.runnerUp ? teamById(h.runnerUp).name : '—'}</td>
         <td>${h.userW}-${h.userL}</td>
         <td><span class="pill ${pill}">${h.userResult}</span></td>
-        <td class="muted">${h.leader ? `${h.leader.name} (${h.leader.ppg})` : '—'}</td>
+        <td class="name">${mvp}</td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" class="muted center">Aucune saison terminée. L\'histoire s\'écrit sur le terrain.</td></tr>';
+
+    // Détail des récompenses de la dernière saison terminée
+    let awardsCard = '';
+    const last = (s.history || [])[0];
+    if (last && last.awards) {
+      const a = last.awards;
+      const item = (label, x) => x ? `<div class="kv"><span>${label}</span><span class="v">${x.name} <small class="muted">${x.line || ''}</small></span></div>` : '';
+      const allNBA = (a.allNBA || []).map(x => `${this.posTag(x.pos)} ${x.name}`).join(' · ') || '—';
+      const allStars = (a.allStars || []).map(x => x.name).join(' · ') || '—';
+      awardsCard = `<div class="card"><h2>🏅 Récompenses ${last.season}</h2>
+        <div class="grid cols2">
+          <div>${item('🏆 MVP', a.mvp)}${item('🛡️ Défenseur de l\'année', a.dpoy)}${item('🔥 6e homme', a.sixth)}</div>
+          <div>${item('📈 Progression (MIP)', a.mip)}${item('🌟 Rookie de l\'année', a.roy)}</div>
+        </div>
+        <h3>All-NBA (1ère équipe)</h3><div class="muted" style="font-size:13px">${allNBA}</div>
+        <h3>All-Stars</h3><div class="muted" style="font-size:13px">${allStars}</div>
+      </div>`;
+    }
+
     return `<div class="card"><h2>🏆 Palmarès du club</h2><p>${trophies}</p></div>
+      ${awardsCard}
       <div class="card"><h2>📜 Histoire de la ligue</h2>
-        <div class="table-wrap"><table><thead><tr><th>Saison</th><th class="name">Champion</th><th class="name">Finaliste</th><th>Votre bilan</th><th>Parcours</th><th>Meilleur marqueur</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+        <div class="table-wrap"><table><thead><tr><th>Saison</th><th class="name">Champion</th><th class="name">Finaliste</th><th>Votre bilan</th><th>Parcours</th><th class="name">MVP</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   },
 
   /* --------------------------------- Ligue ------------------------------ */
@@ -850,6 +871,7 @@ const UI = {
       <h2>${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</h2>
       <p class="muted">${p.age} ans · ${teamById(team).city} ${teamById(team).name} · Contrat ${p.salary} M$ (${p.years||1} an) · Potentiel ${p.potential}</p>
       ${p.injuryGames>0?`<p style="color:var(--red);font-weight:700">🏥 Blessé : ${p._injuryDesc||'indisponible'} — absent ~${p.injuryGames} matchs.</p>`:''}
+      ${(p.awards&&p.awards.length)?`<p style="font-size:13px">🏅 ${p.awards.map(a=>`${a.label} ${a.season}`).join(' · ')}</p>`:''}
       <div class="grid cols2" style="margin-top:12px">
         <div>${bar('Tir extérieur', p.shooting)}${bar('Jeu intérieur', p.inside)}${bar('Création', p.playmaking)}</div>
         <div>${bar('Rebond', p.rebounding)}${bar('Défense', p.defense)}${bar('Athlétisme', p.athletic)}</div>

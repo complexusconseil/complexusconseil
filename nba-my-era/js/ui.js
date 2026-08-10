@@ -13,6 +13,38 @@ const UI = {
   ovrClass(o) { return o >= 88 ? 'elite' : o >= 80 ? 'great' : o >= 73 ? 'good' : o >= 65 ? 'avg' : 'low'; },
   ovrTag(o) { return `<span class="ovr ${this.ovrClass(o)}">${o}</span>`; },
   moraleEmoji(p) { const m = p.morale != null ? p.morale : 70; return m >= 80 ? '😀' : m >= 62 ? '🙂' : m >= 45 ? '😐' : '😞'; },
+
+  /* ------------------------- Graphiques (SVG inline) -------------------- */
+  svgBars(items, opt = {}) {
+    const w = opt.w || 280, rowH = 20, gap = 6, labelW = opt.labelW || 96;
+    const max = Math.max(1, ...items.map(i => i.value));
+    const h = Math.max(1, items.length) * (rowH + gap);
+    const col = opt.color || 'var(--accent)';
+    const bars = items.map((it, i) => {
+      const y = i * (rowH + gap);
+      const bw = Math.max(2, (it.value / max) * (w - labelW - 44));
+      const label = (it.label || '').length > 15 ? it.label.slice(0, 14) + '…' : it.label;
+      return `<text x="0" y="${y + rowH - 5}" fill="var(--muted)" font-size="11">${label}</text>
+        <rect x="${labelW}" y="${y + 2}" width="${bw}" height="${rowH - 5}" rx="3" fill="${col}"></rect>
+        <text x="${labelW + bw + 5}" y="${y + rowH - 5}" fill="var(--text)" font-size="11" font-weight="700">${it.disp != null ? it.disp : it.value}</text>`;
+    }).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="max-width:${w}px">${bars}</svg>`;
+  },
+  formGuide() {
+    const log = Game.state.seasonLog.slice(0, 10).slice().reverse();
+    if (!log.length) return '<span class="muted">Aucun match joué</span>';
+    return `<div style="display:flex;gap:4px;flex-wrap:wrap">${log.map(r =>
+      `<span title="${r.my}-${r.opp} vs ${teamById(r.oppId).id}" style="width:20px;height:20px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;font-weight:800;color:#0d1117;background:${r.win ? 'var(--green)' : 'var(--red)'}">${r.win ? 'V' : 'D'}</span>`).join('')}</div>`;
+  },
+  sparkline() {
+    const log = Game.state.seasonLog.slice(0, 20).slice().reverse().map(r => r.my - r.opp);
+    if (log.length < 2) return '<span class="muted">Trop peu de matchs</span>';
+    const w = 280, h = 50, max = Math.max(6, ...log.map(v => Math.abs(v)));
+    const pts = log.map((v, i) => `${(i / (log.length - 1) * w).toFixed(1)},${(h / 2 - (v / max) * (h / 2 - 4)).toFixed(1)}`).join(' ');
+    return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="max-width:${w}px">
+      <line x1="0" y1="${h / 2}" x2="${w}" y2="${h / 2}" stroke="var(--border)"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/></svg>`;
+  },
   posTag(p) { return `<span class="pos-tag">${p}</span>`; },
   badge(id, size = 42) {
     const t = teamById(id);
@@ -271,6 +303,18 @@ const UI = {
           <div class="kv"><span>Titres remportés</span><span class="v">${s.trophies.length} 🏆</span></div>
         </div>
       </div>
+      ${(() => {
+        const scorers = [...ut.roster].filter(p => p.stats.gp > 0)
+          .sort((a, b) => this.avg(b.stats, 'pts') - this.avg(a.stats, 'pts')).slice(0, 5)
+          .map(p => ({ label: p.name, value: this.avg(p.stats, 'pts'), disp: this.fmt(this.avg(p.stats, 'pts')) }));
+        return `<div class="grid cols2">
+          <div class="card"><h2>📊 Meilleurs marqueurs</h2>${scorers.length ? this.svgBars(scorers) : '<div class="muted">Après quelques matchs.</div>'}
+            <p class="muted" style="font-size:12px;margin-top:6px">Répartition liée à votre schéma (${OFF_SCHEMES[ut.offScheme].name}) et à vos options prioritaires.</p></div>
+          <div class="card"><h2>📈 Forme & différentiel</h2>
+            <div class="muted" style="font-size:12px;margin-bottom:4px">10 derniers résultats</div>${this.formGuide()}
+            <div class="muted" style="font-size:12px;margin:10px 0 4px">Différentiel de points (20 derniers)</div>${this.sparkline()}</div>
+        </div>`;
+      })()}
       <div class="grid cols2">
         <div class="card"><h2>Prochain match</h2>${nextHtml}
           ${s.phase==='regular' ? `<div class="row" style="margin-top:14px">
@@ -513,7 +557,35 @@ const UI = {
         <button class="btn ghost" data-act="simgame">⏩ Simuler rapidement</button>
       </div>
     </div>
+    ${this.taleOfTape(ut, ot)}
     <div class="card"><h2>Résultats récents</h2>${this.recentResults()}</div>`;
+  },
+
+  // Présentation d'avant-match : comparatif des deux équipes
+  taleOfTape(a, bTeam) {
+    const scorer = t => { const p = [...t.roster].filter(x => x.stats.gp > 0).sort((x, y) => this.avg(y.stats, 'pts') - this.avg(x.stats, 'pts'))[0]; return p ? `${p.name} (${this.fmt(this.avg(p.stats, 'pts'))} pts)` : [...t.roster].sort((x, y) => y.ovr - x.ovr)[0]?.name || '—'; };
+    const row = (label, av, bv, fmt) => {
+      const A = fmt ? fmt(av) : av, B = fmt ? fmt(bv) : bv;
+      const aWin = av >= bv;
+      return `<div class="row" style="justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+        <b style="color:${aWin ? 'var(--green)' : 'var(--muted)'};min-width:70px;text-align:left">${A}</b>
+        <span class="muted" style="font-size:12px">${label}</span>
+        <b style="color:${!aWin ? 'var(--green)' : 'var(--muted)'};min-width:70px;text-align:right">${B}</b></div>`;
+    };
+    const gp = t => t.w + t.l;
+    return `<div class="card"><h2>🎬 Présentation du match</h2>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="text-align:center">${this.badge(a.id, 44)}<div><b>${teamById(a.id).name}</b></div></div>
+        <div class="muted" style="font-weight:800">VS</div>
+        <div style="text-align:center">${this.badge(bTeam.id, 44)}<div><b>${teamById(bTeam.id).name}</b></div></div>
+      </div>
+      ${row('Note d\'équipe', teamOverall(a), teamOverall(bTeam))}
+      ${row('Bilan', a.w, bTeam.w, () => 0) && `<div class="row" style="justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><b style="min-width:70px">${a.w}-${a.l}</b><span class="muted" style="font-size:12px">Bilan</span><b style="min-width:70px;text-align:right">${bTeam.w}-${bTeam.l}</b></div>`}
+      ${row('Pts marqués/m', gp(a) ? a.ptsFor / gp(a) : 0, gp(bTeam) ? bTeam.ptsFor / gp(bTeam) : 0, v => this.fmt(v))}
+      ${row('Chimie', teamChemistry(a), teamChemistry(bTeam), v => Math.round(v))}
+      <div class="row" style="justify-content:space-between;padding:4px 0"><b style="min-width:90px;font-size:12px">${scorer(a)}</b><span class="muted" style="font-size:12px">Leader</span><b style="min-width:90px;text-align:right;font-size:12px">${scorer(bTeam)}</b></div>
+      <div class="row" style="justify-content:center;margin-top:4px"><span class="muted" style="font-size:12px">⚔️ ${OFF_SCHEMES[a.offScheme].name} · 🛡️ ${DEF_SCHEMES[a.defScheme].name} &nbsp;|&nbsp; ⚔️ ${OFF_SCHEMES[bTeam.offScheme].name} · 🛡️ ${DEF_SCHEMES[bTeam.defScheme].name}</span></div>
+    </div>`;
   },
 
   // Vue du match en cours : score, changement de schéma en direct, quart par quart
@@ -1125,21 +1197,36 @@ const UI = {
     const s = Game.state; const ut = Game.ut();
     if (!s.freeAgents) return '';
     const rows = s.freeAgents.slice(0, 30).map(p => {
-      const ask = contractValue(p.ovr, p.age);
+      const d = Game.contractDemand(p, false);
       return `<tr>
         <td class="name">${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</td>
         <td>${p.age}</td><td class="muted">${p.potential}</td>
-        <td>${ask} M$ <small class="muted">demandé</small></td>
-        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" value="${ask}" data-fa-sal="${p.id}"></td>
-        <td><select data-fa-yr="${p.id}"><option selected>1</option><option>2</option><option>3</option></select></td>
-        <td><button class="btn green sm" data-sign="${p.id}" ${ut.roster.length>=15?'disabled':''}>Signer</button></td>
+        <td>${d.ask} M$ <small class="muted">demandé · ${d.wantYears} ans</small></td>
+        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" max="${d.cap}" value="${d.ask}" data-fa-sal="${p.id}"></td>
+        <td><select data-fa-yr="${p.id}"><option>1</option><option>2</option><option ${d.wantYears>=3?'selected':''}>3</option><option ${d.wantYears>=4?'selected':''}>4</option></select></td>
+        <td><button class="btn green sm" data-sign="${p.id}" ${ut.roster.length>=15?'disabled':''}>Négocier</button></td>
       </tr>`;
     }).join('');
-    return `<div class="card"><h2>Agents libres</h2>
-      <p class="muted" style="margin-bottom:8px">Effectif : ${ut.roster.length}/15 · Masse ${teamSalary(ut)} M$. Renforcez votre équipe.</p>
-      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Pot</th><th>Valeur</th><th>Offre/an</th><th>Durée</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    return `<div class="card"><div class="row" style="justify-content:space-between"><h2>Agents libres</h2>
+        <button class="btn ghost sm" data-act="fa-advance">⏩ Laisser le marché avancer</button></div>
+      <p class="muted" style="margin-bottom:8px">Effectif : ${ut.roster.length}/15 · Masse ${teamSalary(ut)} M$. Proposez un contrat — le joueur peut <b>accepter</b>, <b>contre-offrir</b> ou <b>refuser</b>. Les meilleurs partent vite : la concurrence signe aussi.</p>
+      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Pot</th><th>Demande</th><th>Offre/an</th><th>Durée</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row end" style="margin-top:12px"><button class="btn primary" data-act="finish-offseason">Terminer l'intersaison →</button></div>
     </div>`;
+  },
+
+  // Gestion d'une réponse de négociation (accept / counter / reject)
+  handleNego(r, salSel, yrSel) {
+    if (!r) return;
+    if (r.status === 'accept') { this.toast(r.msg || 'Contrat accepté !'); this.render(); return; }
+    if (r.status === 'counter') {
+      const sEl = document.querySelector(salSel), yEl = document.querySelector(yrSel);
+      if (sEl) sEl.value = r.counterSalary; if (yEl) yEl.value = r.counterYears;
+      this.toast('📝 Contre-offre — ' + (r.msg || ''));
+      return;   // on garde la contre-offre affichée (pas de re-render)
+    }
+    this.toast(r.msg || 'Refusé.');
+    if (r.status === 'gone') this.render();
   },
 
   /* ------------------------- Fiche joueur (modale) ---------------------- */
@@ -1200,12 +1287,13 @@ const UI = {
     const ls = this.el('league-sel'); if (ls) ls.addEventListener('change',()=>{this._leagueTeam=ls.value;this.render();});
     const tp = this.el('trade-partner'); if (tp) tp.addEventListener('change',()=>{this.tradePartner=tp.value;this.render();});
 
-    // offseason: resign
+    // offseason: resign (négociation)
     m.querySelectorAll('[data-resign]').forEach(b=>b.addEventListener('click',()=>{
       const id=+b.dataset.resign;
       const sal=+m.querySelector(`[data-resign-sal="${id}"]`).value;
       const yr=+m.querySelector(`[data-resign-yr="${id}"]`).value;
-      Game.resignPlayer(id,sal,yr);this.toast('Joueur prolongé');this.render();}));
+      const r=Game.negotiateResign(id,sal,yr);
+      this.handleNego(r, `[data-resign-sal="${id}"]`, `[data-resign-yr="${id}"]`);}));
     m.querySelectorAll('[data-let-go]').forEach(b=>b.addEventListener('click',()=>{
       Game.releasePlayer(+b.dataset.letGo);this.toast('Joueur libéré');this.render();}));
 
@@ -1213,13 +1301,13 @@ const UI = {
     m.querySelectorAll('[data-draft]').forEach(b=>b.addEventListener('click',()=>{
       const r=Game.userDraftPick(+b.dataset.draft); if(r&&r.err)this.toast(r.err); this.render();}));
 
-    // free agency
+    // free agency (négociation)
     m.querySelectorAll('[data-sign]').forEach(b=>b.addEventListener('click',()=>{
       const id=+b.dataset.sign;
       const sal=+m.querySelector(`[data-fa-sal="${id}"]`).value;
       const yr=+m.querySelector(`[data-fa-yr="${id}"]`).value;
-      const r=Game.signFreeAgent(id,sal,yr);
-      if(r&&r.err)this.toast(r.err);else this.toast('Joueur signé !');this.render();}));
+      const r=Game.negotiateFreeAgent(id,sal,yr);
+      this.handleNego(r, `[data-fa-sal="${id}"]`, `[data-fa-yr="${id}"]`);}));
 
     // tactiques : schémas
     m.querySelectorAll('[data-off]').forEach(el=>el.addEventListener('change',()=>{Game.setOffScheme(el.dataset.off);this.render();}));
@@ -1300,6 +1388,7 @@ const UI = {
       case 'advance-draft': Game.advanceDraft(); R(); break;
       case 'sim-draft': Game.simDraftAll(); this.toast('Draft simulée'); R(); break;
       case 'to-fa': Game.state.offseasonStep=2; Game.save(); R(); break;
+      case 'fa-advance': { const signed=Game.advanceFAMarket(); this.toast(signed.length?`${signed.length} agent(s) libre(s) signé(s) ailleurs`:'Marché calme'); R(); break; }
       case 'finish-offseason': Game.state.offseasonStep=3; Game.save(); R(); break;
       case 'start-season': Game.finishOffseason(); this.tab='dash'; R(); break;
       // autoline / automin

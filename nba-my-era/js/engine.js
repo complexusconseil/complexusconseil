@@ -412,6 +412,18 @@ function maxSalary(p) {
 function schemeOff(team) { return OFF_SCHEMES[team.offScheme] || OFF_SCHEMES.balanced; }
 function schemeDef(team) { return DEF_SCHEMES[team.defScheme] || DEF_SCHEMES.balanced; }
 
+// Facteur d'usage offensif selon l'adéquation du joueur au schéma d'équipe.
+function schemeFit(p, schemeKey) {
+  switch (schemeKey) {
+    case 'paceSpace':  return 0.70 + clamp((p.shooting - 58) / 40, 0, 1) * 0.75;   // priorité aux tireurs
+    case 'insideOut':  return 0.70 + clamp((p.inside - 58) / 40, 0, 1) * 0.75;     // priorité aux intérieurs
+    case 'sevenSec':   return 0.80 + clamp((p.athletic - 58) / 45, 0, 1) * 0.55;   // priorité aux athlètes/transition
+    case 'motion':     return 0.88 + clamp((p.playmaking - 55) / 45, 0, 1) * 0.34; // partage, création
+    case 'isoStars':   return 1.0;   // la concentration est gérée via la hiérarchie
+    default:           return 1.0;   // équilibré
+  }
+}
+
 // Simule un match complet. Renvoie {home:{score,box}, away:{score,box}, ot}
 function simGame(home, away, opts = {}) {
   const H = genTeamBox(home, away, 1);
@@ -445,10 +457,15 @@ function genTeamBox(team, opp, portion = 1) {
     const m = clamp(team.minutes[b.p.id] || 0, 0, 40);
     let usage = 0.4 + (b.p.shooting + b.p.inside + b.p.playmaking) / 300;
     const r = prioRank[b.p.id];
+    // Influence de la hiérarchie, modulée par le schéma (motion aplatit, iso amplifie)
     if (r != null) {
-      usage *= PRIORITY_MULT[Math.min(r, PRIORITY_MULT.length - 1)];
-      if (r < 2) usage *= off.star;   // iso stars amplifie les 2 premières options
+      let pm = PRIORITY_MULT[Math.min(r, PRIORITY_MULT.length - 1)];
+      if (team.offScheme === 'motion') pm = 1 + (pm - 1) * 0.5;
+      else if (team.offScheme === 'isoStars') { pm = 1 + (pm - 1) * 1.2; if (r < 2) pm *= off.star; }
+      usage *= pm;
     }
+    // Le schéma favorise certains profils (qui prend les tirs dépend de la stratégie)
+    usage *= schemeFit(b.p, team.offScheme);
     b.weight = m * usage;
     b.min = m * portion;
   });

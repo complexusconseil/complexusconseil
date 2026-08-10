@@ -608,6 +608,63 @@ const Game = {
     this.save();
   },
 
+  /* -------------------------- Négociations de contrat ------------------- */
+  contractDemand(p, resign) {
+    const market = contractValue(p.ovr, p.age);
+    const factor = 0.90 + (nameHash(p.name) % 24) / 100;       // 0.90..1.13, stable par joueur
+    const morale = p.morale != null ? p.morale : 70;
+    const loyalty = resign ? clamp((morale - 60) / 45, -0.18, 0.12) : 0;  // bon moral => accepte un peu moins
+    const wantYears = p.age <= 26 ? 4 : p.age <= 30 ? 3 : p.age <= 33 ? 2 : 1;
+    const ask = round1(clamp(market * factor * (resign ? 1 : 1.05), MIN_SALARY, maxSalary(p)));
+    return { market, factor, loyalty, wantYears, ask, cap: maxSalary(p) };
+  },
+  _evalContract(p, salary, years, d) {
+    const ratio = salary / (d.ask || 1);
+    const yearsPen = years < d.wantYears ? (d.wantYears - years) * 0.05 : 0;
+    const eff = ratio - yearsPen + d.loyalty;
+    if (salary >= d.cap - 0.01 && years >= d.wantYears) return { status: 'accept' };
+    if (eff >= 0.98) return { status: 'accept' };
+    if (eff >= 0.84) return { status: 'counter', counterSalary: round1(Math.min(d.ask, d.cap)), counterYears: d.wantYears, ask: d.ask };
+    return { status: 'reject', ask: d.ask, wantYears: d.wantYears };
+  },
+  negotiateFreeAgent(faId, salary, years) {
+    const s = this.state; const fa = (s.freeAgents || []).find(p => p.id === faId);
+    if (!fa) return { status: 'gone', msg: 'Ce joueur n\'est plus disponible.' };
+    if (this.ut().roster.length >= 15) return { status: 'reject', msg: 'Effectif complet (15 max).' };
+    const d = this.contractDemand(fa, false);
+    const r = this._evalContract(fa, salary, years, d);
+    if (r.status === 'accept') { this.signFreeAgent(faId, salary, years); return { status: 'accept', msg: `${fa.name} accepte et signe !` }; }
+    if (r.status === 'counter') return { status: 'counter', counterSalary: r.counterSalary, counterYears: r.counterYears, msg: `${fa.name} demande ${r.counterSalary} M$ sur ${r.counterYears} ans.` };
+    return { status: 'reject', msg: `${fa.name} refuse (attend ~${Math.round(d.ask)} M$/an sur ${d.wantYears} ans).` };
+  },
+  negotiateResign(pid, salary, years) {
+    const p = playerById(this.ut(), pid); if (!p) return { status: 'gone' };
+    const d = this.contractDemand(p, true);
+    const r = this._evalContract(p, salary, years, d);
+    if (r.status === 'accept') { this.resignPlayer(pid, salary, years); return { status: 'accept', msg: `${p.name} prolonge !` }; }
+    if (r.status === 'counter') return { status: 'counter', counterSalary: r.counterSalary, counterYears: r.counterYears, msg: `${p.name} veut ${r.counterSalary} M$ sur ${r.counterYears} ans.` };
+    return { status: 'reject', msg: `${p.name} décline — il veut tester le marché (~${Math.round(d.ask)} M$/an).` };
+  },
+  advanceFAMarket() {
+    const s = this.state; if (!s.freeAgents || !s.freeAgents.length) return [];
+    const signed = [];
+    const n = 2 + randInt(0, 3);
+    for (let k = 0; k < n && s.freeAgents.length; k++) {
+      const fa = s.freeAgents[0];   // les meilleurs partent en premier
+      const suitors = leagueIds().filter(id => id !== s.userTeam && s.teams[id].roster.length < 14);
+      if (!suitors.length || rnd() > 0.7) { s.freeAgents.shift(); continue; }
+      const tid = pick(suitors);
+      s.freeAgents.shift();
+      fa.salary = contractValue(fa.ovr, fa.age); fa.years = randInt(1, 3); fa.morale = 72;
+      const t = s.teams[tid]; t.roster.push(fa);
+      t.lineup = autoLineup(t.roster); autoMinutes(t); t.priorities = autoPriorities(t);
+      signed.push({ name: fa.name, ovr: fa.ovr, team: tid });
+    }
+    signed.forEach(x => this.log(`Agent libre : ${x.name} (${x.ovr}) signe chez ${teamById(x.team).city}.`));
+    this.save();
+    return signed;
+  },
+
   /* --------------------------------- Draft ------------------------------ */
   // Construit l'ordre de draft (2 tours, pire bilan d'abord) selon la propriété des picks
   startDraft(year) {

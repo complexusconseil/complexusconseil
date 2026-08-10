@@ -105,9 +105,29 @@ function makePlayer(pos, opts = {}) {
     _injuryDesc: null,
   };
   p.ovr = overall(p);
+  p.peakOvr = p.ovr;      // meilleure note atteinte en carrière
+  p.teamsPlayed = [];     // franchises fréquentées (pour la carrière)
   p.salary = opts.salary != null ? opts.salary : contractValue(p.ovr, age);
   p.years = opts.years != null ? opts.years : randInt(1, 4);
   return p;
+}
+
+/* --------------------------- Carrière / totaux --------------------------- */
+function careerTotals(history) {
+  const T = { seasons: history.length, gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0 };
+  history.forEach(h => {
+    T.gp += h.gp; T.min += h.min || 0; T.pts += h.pts; T.reb += (h.oreb + h.dreb);
+    T.ast += h.ast; T.stl += h.stl; T.blk += h.blk; T.fgm += h.fgm; T.fga += h.fga; T.tpm += h.tpm; T.tpa += h.tpa;
+  });
+  T.ppg = T.gp ? T.pts / T.gp : 0; T.rpg = T.gp ? T.reb / T.gp : 0; T.apg = T.gp ? T.ast / T.gp : 0;
+  return T;
+}
+// Un joueur est-il éligible au Hall of Fame ?
+function hofEligible(awards, peakOvr, totals) {
+  const mvps = awards.filter(a => a.label === 'MVP').length;
+  const majors = awards.filter(a => ['MVP', 'Défenseur de l\'année', 'Rookie de l\'année'].includes(a.label)).length;
+  return mvps >= 1 || peakOvr >= 90 || (majors >= 1 && peakOvr >= 85) ||
+         (totals.gp >= 600 && totals.ppg >= 20) || (totals.gp >= 800 && peakOvr >= 84);
 }
 
 function overall(p) {
@@ -160,6 +180,7 @@ function makePlayerReal(e) {
   const p = makePlayer(e.pos, { base: e.ovr, age: e.age != null ? e.age : randInt(22, 32) });
   p.name = e.n;
   p.ovr = clamp(e.ovr, 40, 99);            // respecter la note fournie
+  p.peakOvr = p.ovr;
   p.potential = Math.max(p.potential, p.ovr, e.pot || 0);
   if ((e.age || 30) <= 23) p.potential = Math.max(p.potential, clamp(p.ovr + randInt(3, 9), p.ovr, 99));
   p.salary = contractValue(p.ovr, p.age);
@@ -765,11 +786,15 @@ function seasonAwards(gameState) {
 // Vieillissement + progression des jeunes / déclin des vétérans
 function ageAndDevelop(gameState) {
   const retired = [];
+  gameState.legends = gameState.legends || [];
   Object.values(gameState.teams).forEach(team => {
     team.roster.forEach(p => {
       p.age++;
+      // suivi des franchises fréquentées
+      p.teamsPlayed = p.teamsPlayed || [];
+      if (p.teamsPlayed[p.teamsPlayed.length - 1] !== team.id) p.teamsPlayed.push(team.id);
       // archivage stats saison
-      if (p.stats.gp > 0) p.history.push({ season: gameState.season, ...p.stats });
+      if (p.stats.gp > 0) p.history.push({ season: gameState.season, team: team.id, ...p.stats });
       p.stats = emptyStats();
       // Développement
       let delta = 0;
@@ -779,17 +804,65 @@ function ageAndDevelop(gameState) {
       else if (p.age <= 33) delta = randInt(-3, 0);
       else delta = randInt(-5, -1);
       applyOvrDelta(p, delta);
-      // Contrat -1 an
+      p.peakOvr = Math.max(p.peakOvr || p.ovr, p.ovr);
       if (p.years > 0) p.years--;
     });
     // Retraites (vétérans faibles)
     team.roster = team.roster.filter(p => {
       const retire = p.age >= 38 || (p.age >= 35 && p.ovr < 68 && rnd() < 0.5);
-      if (retire) retired.push({ team: team.id, name: p.name, age: p.age });
+      if (retire) {
+        retired.push({ team: team.id, name: p.name, age: p.age });
+        const totals = careerTotals(p.history);
+        gameState.legends.unshift({
+          name: p.name, pos: p.pos, peakOvr: p.peakOvr || p.ovr,
+          awards: (p.awards || []).slice(), history: p.history.slice(),
+          teamsPlayed: (p.teamsPlayed || [team.id]).slice(),
+          lastTeam: team.id, retiredSeason: gameState.season, retiredAge: p.age,
+          totals, hof: hofEligible(p.awards || [], p.peakOvr || p.ovr, totals),
+        });
+      }
       return !retire;
     });
   });
   return retired;
+}
+
+/* -------------------------- Finales All-Time ----------------------------- */
+// Construit une équipe jouable à partir d'un roster d'époque (hors partie en cours).
+function buildExhibitionTeam(eraId, teamId) {
+  const src = (eraId === 'modern' || !eraId)
+    ? (typeof REAL_ROSTERS !== 'undefined' ? REAL_ROSTERS[teamId] : null)
+    : (typeof ERA_ROSTERS !== 'undefined' && ERA_ROSTERS[eraId] ? ERA_ROSTERS[eraId][teamId] : null);
+  if (!src || !src.length) return null;
+  const roster = src.map(makePlayerReal);
+  const team = { id: teamId, eraId, roster, lineup: autoLineup(roster), minutes: {},
+                 offScheme: suggestOffScheme(roster), defScheme: suggestDefScheme(roster), w: 0, l: 0 };
+  autoMinutes(team); team.priorities = autoPriorities(team);
+  return team;
+}
+// Simule une série au meilleur des 7 entre deux équipes (règles neutres).
+function simExhibitionSeries(teamA, teamB) {
+  const saved = ERA_RULES;
+  ERA_RULES = { threePA: 0.7, pace: 1.0, fgAdj: 0, confMode: 'single' };  // terrain neutre inter-époques
+  let aw = 0, bw = 0; const games = []; const scorers = {};
+  let gameNo = 0;
+  while (aw < 4 && bw < 4) {
+    gameNo++;
+    const aHome = [1, 2, 5, 7].includes(gameNo);
+    const res = aHome ? simGame(teamA, teamB) : simGame(teamB, teamA);
+    const aScore = aHome ? res.home.score : res.away.score;
+    const bScore = aHome ? res.away.score : res.home.score;
+    (aHome ? res.home.box : res.away.box).forEach(x => { scorers[x.p.name] = (scorers[x.p.name] || 0) + x.s.pts; });
+    (aHome ? res.away.box : res.home.box).forEach(x => { scorers[x.p.name] = (scorers[x.p.name] || 0) + x.s.pts; });
+    if (aScore > bScore) aw++; else bw++;
+    games.push({ a: aScore, b: bScore });
+    if (gameNo > 7) break;
+  }
+  ERA_RULES = saved;
+  const winner = aw > bw ? teamA : teamB;
+  const mvpName = Object.entries(scorers).sort((x, y) => y[1] - x[1])[0];
+  return { aw, bw, games, winner: winner.id, winnerEra: winner.eraId,
+           mvp: mvpName ? { name: mvpName[0], pts: mvpName[1] } : null };
 }
 
 function applyOvrDelta(p, delta) {

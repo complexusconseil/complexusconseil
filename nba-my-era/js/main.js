@@ -35,7 +35,9 @@ const Game = {
       trophies: [],                // titres remportés par le user
       seasonLog: [],               // résultats des matchs du user cette saison
       liveGame: null,              // match en cours (jeu par quart-temps)
-      history: [],                 // archive des saisons (champions, résultats, leaders)
+      history: [],                 // archive des saisons (champions, résultats, leaders, récompenses)
+      legends: [],                 // joueurs retraités (carrières + Hall of Fame)
+      franchiseStats: {},          // bilan/titres cumulés par franchise
       scouting: { points: 12, classes },
     };
     this.log(`Bienvenue à la tête des ${this.userTeamFull().name} ! (${era ? era.name : 'Époque moderne'})`);
@@ -380,7 +382,30 @@ const Game = {
       leader,
       awards: aw.pack || null,
     });
+
+    // Histoire des franchises : bilan cumulé, titres, finales, meilleure saison
+    const finalists = new Set(p.finals ? [p.finals.hi, p.finals.lo] : []);
+    Object.keys(s.teams).forEach(id => {
+      const t = s.teams[id];
+      const fs = s.franchiseStats[id] || (s.franchiseStats[id] = { w: 0, l: 0, titles: 0, finals: 0, seasons: 0, bestW: 0, bestYear: null, mvps: 0 });
+      fs.w += t.w; fs.l += t.l; fs.seasons++;
+      if (t.w > fs.bestW) { fs.bestW = t.w; fs.bestYear = s.season; }
+      if (id === champ) fs.titles++;
+      if (finalists.has(id)) fs.finals++;
+      if (aw.winners && aw.winners.mvp && aw.winners.mvp.team === id) fs.mvps++;
+    });
+
     this.startOffseason();
+  },
+
+  /* --------------------------- Finales All-Time ------------------------- */
+  runExhibition(eraA, teamA, eraB, teamB) {
+    const A = buildExhibitionTeam(eraA, teamA);
+    const B = buildExhibitionTeam(eraB, teamB);
+    if (!A || !B) return { err: 'Équipes indisponibles pour cette confrontation.' };
+    A.eraId = eraA; B.eraId = eraB;
+    const res = simExhibitionSeries(A, B);
+    return { ok: true, res, A, B, eraA, eraB };
   },
 
   /* ------------------------------ Intersaison --------------------------- */

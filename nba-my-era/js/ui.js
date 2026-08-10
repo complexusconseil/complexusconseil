@@ -569,6 +569,17 @@ const UI = {
 
   /* ------------------------------ Historique ---------------------------- */
   historyView() {
+    const sub = this._histSub || 'seasons';
+    this._histSub = sub;
+    const nav = [['seasons', '📅 Saisons'], ['franchises', '🏙️ Franchises'], ['legends', '👑 Légendes'],
+                 ['records', '📈 Records'], ['exhibition', '⚔️ Finales All-Time']]
+      .map(([k, l]) => `<button class="btn ${k === sub ? 'primary' : 'ghost'} sm" data-hist="${k}">${l}</button>`).join(' ');
+    const body = { seasons: () => this.histSeasons(), franchises: () => this.histFranchises(),
+      legends: () => this.histLegends(), records: () => this.histRecords(), exhibition: () => this.histExhibition() }[sub]();
+    return `<div class="card"><div class="row" style="flex-wrap:wrap">${nav}</div></div>${body}`;
+  },
+
+  histSeasons() {
     const s = Game.state;
     const trophies = s.trophies.length ? s.trophies.map(y => `🏆 ${y}`).join(' · ') : 'Aucun titre pour l\'instant.';
     const rows = (s.history || []).map(h => {
@@ -607,6 +618,149 @@ const UI = {
       ${awardsCard}
       <div class="card"><h2>📜 Histoire de la ligue</h2>
         <div class="table-wrap"><table><thead><tr><th>Saison</th><th class="name">Champion</th><th class="name">Finaliste</th><th>Votre bilan</th><th>Parcours</th><th class="name">MVP</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  },
+
+  /* ---------------------- Historique des franchises --------------------- */
+  histFranchises() {
+    const s = Game.state;
+    const ids = Object.keys(s.franchiseStats);
+    if (!ids.length) return `<div class="card center"><h2>Aucune histoire de franchise</h2><p class="muted">Terminez au moins une saison pour bâtir le livre des records.</p></div>`;
+    const rows = ids.map(id => ({ id, ...s.franchiseStats[id] }))
+      .sort((a, b) => b.titles - a.titles || (b.w) - (a.w))
+      .map(f => `<tr>
+        <td class="name">${this.badge(f.id,20)} ${teamById(f.id).city} ${teamById(f.id).name}</td>
+        <td><b>${f.titles}</b> 🏆</td><td>${f.finals}</td>
+        <td>${f.w}-${f.l}</td><td>${(f.w+f.l)?this.fmt(f.w/(f.w+f.l)*100,0):0}%</td>
+        <td>${f.bestW ? `${f.bestW} V (${f.bestYear})` : '—'}</td><td>${f.mvps}</td>
+      </tr>`).join('');
+    return `<div class="card"><h2>🏙️ Livre des records des franchises</h2>
+      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Finales</th><th>Bilan all-time</th><th>%</th><th>Meilleure saison</th><th>MVP</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  },
+
+  /* ---------------------- Légendes / Hall of Fame ----------------------- */
+  histLegends() {
+    const s = Game.state;
+    const legs = s.legends || [];
+    if (!legs.length) return `<div class="card center"><h2>👑 Aucune légende (encore)</h2><p class="muted">Les grands joueurs rejoindront ce panthéon à leur retraite.</p></div>`;
+    const row = (l, i) => `<tr>
+      <td class="name">${this.posTag(l.pos)} ${l.name} ${l.hof ? '<span title="Hall of Fame">🏆</span>' : ''}</td>
+      <td>${l.totals.seasons} saisons</td>
+      <td>${this.fmt(l.totals.ppg)} pts · ${this.fmt(l.totals.rpg)} reb · ${this.fmt(l.totals.apg)} pas</td>
+      <td class="muted">${(l.awards||[]).filter(a=>a.label==='MVP').length} MVP · pic ${l.peakOvr}</td>
+      <td><button class="btn ghost sm" data-legend="${i}">Carrière</button></td>
+    </tr>`;
+    const hof = legs.filter(l => l.hof), others = legs.filter(l => !l.hof);
+    return `<div class="card"><h2>🏆 Hall of Fame (${hof.length})</h2>
+        ${hof.length ? `<div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Carrière</th><th>Moyennes</th><th>Distinctions</th><th></th></tr></thead><tbody>${hof.map(row).join('')}</tbody></table></div>` : '<div class="muted">Aucun intronisé pour l\'instant.</div>'}
+      </div>
+      <div class="card"><h2>👴 Autres retraités (${others.length})</h2>
+        ${others.length ? `<div class="table-wrap"><table><tbody>${others.slice(0,40).map(row).join('')}</tbody></table></div>` : '<div class="muted">—</div>'}
+      </div>`;
+  },
+
+  /* --------------------------- Records de la ligue ---------------------- */
+  histRecords() {
+    const s = Game.state;
+    // Meneurs de carrière (joueurs actifs + légendes), d'après les saisons archivées
+    const people = [];
+    Object.values(s.teams).forEach(t => t.roster.forEach(p => {
+      const T = careerTotals(p.history); if (T.gp > 0) people.push({ name: p.name, T, active: true, id: p.id });
+    }));
+    (s.legends || []).forEach(l => people.push({ name: l.name, T: l.totals, active: false }));
+    const topBy = (key, label, unit) => {
+      const list = [...people].sort((a, b) => b.T[key] - a.T[key]).slice(0, 10);
+      return `<div class="card"><h3>${label}</h3><div class="table-wrap"><table><tbody>${
+        list.map((x, i) => `<tr><td>${i+1}</td><td class="name">${x.name}${x.active?'':' <small class="muted">(retraité)</small>'}</td><td><b>${Math.round(x.T[key])}</b> ${unit}</td></tr>`).join('') || '<tr><td class="muted">—</td></tr>'
+      }</tbody></table></div></div>`;
+    };
+    // Meilleures saisons individuelles (marqueurs) depuis l'historique
+    const seasonLeaders = (s.history || []).filter(h => h.leader).map(h => ({ ...h.leader, season: h.season }))
+      .sort((a, b) => b.ppg - a.ppg).slice(0, 8);
+    const slHtml = seasonLeaders.map((x, i) => `<tr><td>${i+1}</td><td class="name">${x.name} <small class="muted">${x.season}</small></td><td><b>${x.ppg}</b> pts/m</td></tr>`).join('') || '<tr><td class="muted">—</td></tr>';
+    // Titres par franchise
+    const titles = Object.keys(s.franchiseStats).map(id => ({ id, ...s.franchiseStats[id] }))
+      .filter(f => f.titles > 0).sort((a, b) => b.titles - a.titles).slice(0, 8);
+    const tHtml = titles.map((f, i) => `<tr><td>${i+1}</td><td class="name">${this.badge(f.id,18)} ${teamById(f.id).name}</td><td><b>${f.titles}</b> 🏆</td></tr>`).join('') || '<tr><td class="muted">Aucun champion enregistré.</td></tr>';
+
+    return `<div class="grid cols3">
+        ${topBy('pts', '🏀 Points en carrière', 'pts')}
+        ${topBy('reb', '💪 Rebonds en carrière', 'reb')}
+        ${topBy('ast', '🎯 Passes en carrière', 'pas')}
+      </div>
+      <div class="grid cols2">
+        <div class="card"><h3>🔥 Meilleures saisons (points/match)</h3><div class="table-wrap"><table><tbody>${slHtml}</tbody></table></div></div>
+        <div class="card"><h3>🏆 Titres par franchise</h3><div class="table-wrap"><table><tbody>${tHtml}</tbody></table></div></div>
+      </div>`;
+  },
+
+  /* --------------------------- Finales All-Time ------------------------- */
+  eraTeamName(eraId, id) {
+    const ov = (typeof ERA_TEAM_META !== 'undefined' && ERA_TEAM_META[eraId] && ERA_TEAM_META[eraId][id]) || {};
+    const base = TEAMS.find(t => t.id === id) || { city: id, name: id };
+    return `${ov.city || base.city} ${ov.name || base.name}`;
+  },
+  eraTeamsList(eraId) { return (ERAS[eraId] ? ERAS[eraId].teams : []); },
+  histExhibition() {
+    const eas = this._exEraA || 'modern', ebs = this._exEraB || 'e1996';
+    this._exEraA = eas; this._exEraB = ebs;
+    const teamsA = this.eraTeamsList(eas), teamsB = this.eraTeamsList(ebs);
+    const ta = (this._exTeamA && teamsA.includes(this._exTeamA)) ? this._exTeamA : teamsA[0];
+    const tb = (this._exTeamB && teamsB.includes(this._exTeamB)) ? this._exTeamB : teamsB[0];
+    this._exTeamA = ta; this._exTeamB = tb;
+    const eraOpts = sel => Object.entries(ERAS).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v.name.split(' (')[0]}</option>`).join('');
+    const teamOpts = (era, sel) => this.eraTeamsList(era).map(id => `<option value="${id}" ${id === sel ? 'selected' : ''}>${this.eraTeamName(era, id)}</option>`).join('');
+    const side = (label, eraSelId, teamSelId, era, team) => `<div class="card" style="margin:0"><h3>${label}</h3>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <select id="${eraSelId}">${eraOpts(era)}</select>
+        <select id="${teamSelId}">${teamOpts(era, team)}</select>
+      </div></div>`;
+
+    let result = '';
+    const r = this._exResult;
+    if (r && r.res) {
+      const win = r.res.winner, winName = this.eraTeamName(win === r.A.id ? r.eraA : r.eraB, win);
+      const gline = r.res.games.map((g, i) => `M${i+1}: ${g.a}-${g.b}`).join(' · ');
+      result = `<div class="card"><h2>🏆 ${winName} remporte la série ${Math.max(r.res.aw,r.res.bw)}-${Math.min(r.res.aw,r.res.bw)}</h2>
+        <div class="scoreboard">
+          <div class="tm">${this.badge(r.A.id,48)}<div><b>${this.eraTeamName(r.eraA,r.A.id)}</b></div><div class="sc ${r.res.aw>r.res.bw?'win':''}">${r.res.aw}</div></div>
+          <div style="font-weight:800;color:var(--muted)">série</div>
+          <div class="tm">${this.badge(r.B.id,48)}<div><b>${this.eraTeamName(r.eraB,r.B.id)}</b></div><div class="sc ${r.res.bw>r.res.aw?'win':''}">${r.res.bw}</div></div>
+        </div>
+        <p class="center muted">${gline}</p>
+        ${r.res.mvp ? `<p class="center">🏅 MVP des finales : <b>${r.res.mvp.name}</b> (${r.res.mvp.pts} pts sur la série)</p>` : ''}
+      </div>`;
+    }
+
+    return `<div class="card"><h2>⚔️ Finales All-Time</h2>
+        <p class="muted" style="margin-bottom:10px">Confrontez deux équipes de n'importe quelle époque au meilleur des 7 (terrain neutre, hors partie en cours).</p>
+        <div class="grid cols2">${side('Équipe A', 'ex-eraA', 'ex-teamA', eas, ta)}${side('Équipe B', 'ex-eraB', 'ex-teamB', ebs, tb)}</div>
+        <div class="row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-act="run-exhib">🏀 Simuler la série (Bo7)</button></div>
+      </div>${result}`;
+  },
+
+  legendModal(i) {
+    const l = (Game.state.legends || [])[i]; if (!l) return;
+    this.modal(`<button class="close" onclick="UI.closeModal()">✕</button>
+      <h2>${this.posTag(l.pos)} ${l.name} ${l.hof ? '🏆' : ''}</h2>
+      <p class="muted">Retraité en ${l.retiredSeason} (${l.retiredAge} ans) · pic de note ${l.peakOvr} · ${l.teamsPlayed.map(t=>teamById(t).id).join(', ')}</p>
+      ${this.careerSection(l.history, l.awards)}`);
+  },
+
+  // Section carrière réutilisable (saisons + totaux + distinctions)
+  careerSection(history, awards) {
+    const T = careerTotals(history);
+    const rows = (history || []).slice().reverse().map(h => `<tr>
+      <td>${h.season}</td><td>${h.team ? teamById(h.team).id : '—'}</td><td>${h.gp}</td>
+      <td>${this.fmt(h.pts/h.gp)}</td><td>${this.fmt((h.oreb+h.dreb)/h.gp)}</td><td>${this.fmt(h.ast/h.gp)}</td>
+      <td>${h.fga?this.fmt(h.fgm/h.fga*100,0):0}%</td></tr>`).join('') || '<tr><td colspan="7" class="muted center">Aucune saison archivée.</td></tr>';
+    const awHtml = (awards && awards.length) ? `<p style="font-size:13px">🏅 ${awards.map(a => `${a.label} ${a.season}`).join(' · ')}</p>` : '';
+    return `${awHtml}
+      <h3>Carrière (${T.seasons} saisons)</h3>
+      <div class="table-wrap"><table><thead><tr><th>Saison</th><th>Éq.</th><th>MJ</th><th>PTS</th><th>REB</th><th>PAS</th><th>%Tir</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--border)"><td colspan="2"><b>Totaux</b></td><td><b>${T.gp}</b></td>
+          <td><b>${this.fmt(T.ppg)}</b></td><td><b>${this.fmt(T.rpg)}</b></td><td><b>${this.fmt(T.apg)}</b></td><td>—</td></tr></tfoot>
+      </table></div>`;
   },
 
   /* --------------------------------- Ligue ------------------------------ */
@@ -864,19 +1018,15 @@ const UI = {
       <div class="kv"><span>CTR</span><span class="v">${this.fmt(this.avg(st,'blk'))}</span></div>
       <div class="kv"><span>%Tir</span><span class="v">${st.fga?this.fmt(st.fgm/st.fga*100,0):0}%</span></div>
     </div>` : '<p class="muted" style="margin-top:8px">Pas encore de statistiques cette saison.</p>';
-    const hist = p.history.length ? `<h3>Historique</h3><div class="table-wrap"><table><thead><tr><th>Saison</th><th>MJ</th><th>PTS</th><th>REB</th><th>PAS</th></tr></thead><tbody>${
-      p.history.slice(-6).reverse().map(h=>`<tr><td>${h.season}</td><td>${h.gp}</td><td>${this.fmt(h.pts/h.gp)}</td><td>${this.fmt((h.oreb+h.dreb)/h.gp)}</td><td>${this.fmt(h.ast/h.gp)}</td></tr>`).join('')
-    }</tbody></table></div>` : '';
     this.modal(`<button class="close" onclick="UI.closeModal()">✕</button>
       <h2>${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</h2>
-      <p class="muted">${p.age} ans · ${teamById(team).city} ${teamById(team).name} · Contrat ${p.salary} M$ (${p.years||1} an) · Potentiel ${p.potential}</p>
+      <p class="muted">${p.age} ans · ${teamById(team).city} ${teamById(team).name} · Contrat ${p.salary} M$ (${p.years||1} an) · Potentiel ${p.potential} · pic ${p.peakOvr||p.ovr}</p>
       ${p.injuryGames>0?`<p style="color:var(--red);font-weight:700">🏥 Blessé : ${p._injuryDesc||'indisponible'} — absent ~${p.injuryGames} matchs.</p>`:''}
-      ${(p.awards&&p.awards.length)?`<p style="font-size:13px">🏅 ${p.awards.map(a=>`${a.label} ${a.season}`).join(' · ')}</p>`:''}
       <div class="grid cols2" style="margin-top:12px">
         <div>${bar('Tir extérieur', p.shooting)}${bar('Jeu intérieur', p.inside)}${bar('Création', p.playmaking)}</div>
         <div>${bar('Rebond', p.rebounding)}${bar('Défense', p.defense)}${bar('Athlétisme', p.athletic)}</div>
       </div>
-      ${statLine}${hist}`);
+      ${statLine}${this.careerSection(p.history, p.awards)}`);
   },
 
   menuModal() {
@@ -945,6 +1095,15 @@ const UI = {
     m.querySelectorAll('[data-scout]').forEach(b=>b.addEventListener('click',()=>{
       const r=Game.scoutProspect(this._scoutYear,+b.dataset.scout); if(r&&r.err)this.toast(r.err); this.render();}));
     m.querySelectorAll('[data-scout-year]').forEach(b=>b.addEventListener('click',()=>{this._scoutYear=+b.dataset.scoutYear;this.render();}));
+
+    // historique : sous-onglets, carrières de légendes
+    m.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>{this._histSub=b.dataset.hist;this.render();}));
+    m.querySelectorAll('[data-legend]').forEach(b=>b.addEventListener('click',()=>this.legendModal(+b.dataset.legend)));
+    // finales all-time : sélecteurs
+    const exEA=this.el('ex-eraA'); if(exEA)exEA.addEventListener('change',()=>{this._exEraA=exEA.value;this._exTeamA=null;this.render();});
+    const exEB=this.el('ex-eraB'); if(exEB)exEB.addEventListener('change',()=>{this._exEraB=exEB.value;this._exTeamB=null;this.render();});
+    const exTA=this.el('ex-teamA'); if(exTA)exTA.addEventListener('change',()=>{this._exTeamA=exTA.value;});
+    const exTB=this.el('ex-teamB'); if(exTB)exTB.addEventListener('change',()=>{this._exTeamB=exTB.value;});
   },
 
   action(act) {
@@ -970,6 +1129,12 @@ const UI = {
       // priorités
       case 'prio-add': { const sel=this.el('prio-add'); if(sel&&sel.value){Game.addPriority(+sel.value);this.render();} break; }
       case 'prio-reset': Game.resetPriorities(); R(); break;
+      // finales all-time
+      case 'run-exhib': {
+        const out = Game.runExhibition(this._exEraA||'modern', this._exTeamA, this._exEraB||'e1996', this._exTeamB);
+        if (out && out.err) { this.toast(out.err); break; }
+        this._exResult = out; R(); break;
+      }
       // playoffs
       case 'po-playgame': {
         const r = Game.playUserSeriesGame();

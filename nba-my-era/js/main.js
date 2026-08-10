@@ -9,10 +9,17 @@ const Game = {
   state: null,
 
   /* ------------------------------ Nouvelle partie ----------------------- */
-  newGame(userTeamId, managerName) {
-    const teams = buildLeague(userTeamId);
+  newGame(userTeamId, managerName, eraId) {
+    eraId = eraId || 'modern';
+    const era = setEra(eraId);
+    const startYear = era ? era.year : 2026;
+    const teams = buildLeague(userTeamId, eraId);
+    const classes = {};
+    for (let y = 1; y <= 4; y++) classes[startYear + y] = genProspectClass(startYear + y);
     this.state = {
-      season: 2026,
+      season: startYear,
+      eraId,
+      confMode: (era && era.rules && era.rules.confMode) || 'conf',
       managerName: managerName || 'Manager',
       userTeam: userTeamId,
       teams,
@@ -28,16 +35,10 @@ const Game = {
       trophies: [],                // titres remportés par le user
       seasonLog: [],               // résultats des matchs du user cette saison
       liveGame: null,              // match en cours (jeu par quart-temps)
-      scouting: {                  // cuvées futures pour le scouting
-        points: 12,
-        classes: {
-          2027: genProspectClass(2027),
-          2028: genProspectClass(2028),
-          2029: genProspectClass(2029),
-        },
-      },
+      history: [],                 // archive des saisons (champions, résultats, leaders)
+      scouting: { points: 12, classes },
     };
-    this.log(`Bienvenue à la tête des ${this.userTeamFull().name} !`);
+    this.log(`Bienvenue à la tête des ${this.userTeamFull().name} ! (${era ? era.name : 'Époque moderne'})`);
     this.save();
   },
 
@@ -61,6 +62,7 @@ const Game = {
       const obj = JSON.parse(raw);
       this.state = obj.state;
       _pid = obj.pid || 1;
+      setEra(this.state.eraId || 'modern');   // restaure la ligue active + les règles d'époque
       return true;
     } catch (e) { console.warn(e); return false; }
   },
@@ -75,7 +77,9 @@ const Game = {
   },
   importSave(text) {
     const obj = JSON.parse(text);
-    this.state = obj.state; _pid = obj.pid || 1; this.save();
+    this.state = obj.state; _pid = obj.pid || 1;
+    setEra(this.state.eraId || 'modern');
+    this.save();
   },
 
   /* ------------------------- Calendrier utilisateur --------------------- */
@@ -174,8 +178,20 @@ const Game = {
   startPlayoffs() {
     const s = this.state;
     s.phase = 'playoffs';
-    const east = standings(s, 'EAST').slice(0, 8).map(x => x.team.id);
-    const west = standings(s, 'WEST').slice(0, 8).map(x => x.team.id);
+    const eConf = standings(s, 'EAST'), wConf = standings(s, 'WEST');
+    let east, west;
+    if (s.confMode !== 'single' && eConf.length >= 8 && wConf.length >= 8) {
+      // Playoffs par conférences (moderne)
+      east = eConf.slice(0, 8).map(x => x.team.id);
+      west = wConf.slice(0, 8).map(x => x.team.id);
+    } else {
+      // Bracket unique top-8 (époques / petites ligues), réparti en 2 demi-tableaux
+      const top = standings(s).slice(0, 8).map(x => x.team.id);
+      east = [top[0], top[7], top[3], top[4]];   // (1v8) & (4v5)
+      west = [top[1], top[6], top[2], top[5]];   // (2v7) & (3v6)
+    }
+    const seeds = new Set([...east, ...west]);
+    s._userInPlayoffs = seeds.has(s.userTeam);
     s.playoffs = {
       round: 0,
       east: this.makeRoundSeries(east),
@@ -189,9 +205,9 @@ const Game = {
   },
 
   makeRoundSeries(seeds) {
-    // seeds ordonnés 1..8 -> 1v8,4v5,3v6,2v7
-    const pairs = [[0,7],[3,4],[2,5],[1,6]];
-    return pairs.map(([a,b]) => ({
+    // 8 têtes de série -> 1v8,4v5,3v6,2v7 ; 4 têtes (demi-tableau déjà apparié) -> (0v1),(2v3)
+    const pairs = seeds.length >= 8 ? [[0,7],[3,4],[2,5],[1,6]] : [[0,1],[2,3]];
+    return pairs.filter(([a,b]) => seeds[a] && seeds[b]).map(([a,b]) => ({
       hi: seeds[a], lo: seeds[b], hiSeed: a+1, loSeed: b+1,
       hw: 0, lw: 0, done: false, winner: null,
     }));
@@ -285,8 +301,8 @@ const Game = {
     const westDone = p.west.every(s => s.done);
     if (!eastDone || !westDone) return;
 
-    if (p.round < 2) {
-      // avancer d'un tour dans chaque conférence
+    if (p.east.length > 1 || p.west.length > 1) {
+      // avancer d'un tour dans chaque demi-tableau
       p.east = this.nextConfRound(p.east);
       p.west = this.nextConfRound(p.west);
       p.round++;
@@ -322,13 +338,38 @@ const Game = {
 
   endPlayoffs() {
     const s = this.state;
-    const champ = s.playoffs.champion;
+    const p = s.playoffs;
+    const champ = p.champion;
+    const runnerUp = p.finals ? (p.finals.winner === p.finals.hi ? p.finals.lo : p.finals.hi) : null;
     if (champ === s.userTeam) {
       s.trophies.push(s.season);
       this.log(`🏆 CHAMPIONS NBA ${s.season} ! Félicitations !`);
     } else {
       this.log(`${teamById(champ).city} ${teamById(champ).name} champions ${s.season}.`);
     }
+    // Meilleur marqueur de la ligue cette saison
+    let leader = null;
+    Object.values(s.teams).forEach(t => t.roster.forEach(pl => {
+      if (pl.stats.gp >= 20) {
+        const ppg = pl.stats.pts / pl.stats.gp;
+        if (!leader || ppg > leader.ppg) leader = { name: pl.name, ppg: Math.round(ppg * 10) / 10, team: t.id };
+      }
+    }));
+    // Bilan & parcours de l'utilisateur
+    const ut = this.ut();
+    const userResult = champ === s.userTeam ? 'Champion'
+      : (runnerUp === s.userTeam ? 'Finaliste'
+      : (s._userInPlayoffs ? 'Playoffs' : 'Non qualifié'));
+    s.history.unshift({
+      season: s.season,
+      era: s.eraId,
+      champion: champ,
+      runnerUp,
+      userTeam: s.userTeam,
+      userW: ut.w, userL: ut.l,
+      userResult,
+      leader,
+    });
     this.startOffseason();
   },
 
@@ -348,7 +389,7 @@ const Game = {
     s.draftClass = (s.scouting.classes[dy] || genProspectClass(dy)).slice()
                      .sort((a, b) => a.projRank - b.projRank);
     this.startDraft(dy);       // construit l'ordre (2 tours) et avance jusqu'à votre 1er choix
-    s.freeAgents = genFreeAgents();
+    s.freeAgents = genFreeAgents(s.eraId);
     this.save();
   },
 

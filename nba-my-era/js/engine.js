@@ -47,6 +47,23 @@ function gauss(mean, sd) {
 let _pid = 1;
 const nextPid = () => _pid++;
 
+/* ------------------------------- Époques --------------------------------- */
+// LEAGUE = équipes actives (méta) de l'époque en cours ; ERA_RULES = règles de sim.
+let LEAGUE = TEAMS.slice();
+let ERA_RULES = { threePA: 1.0, pace: 1.0, fgAdj: 0, confMode: 'conf' };
+const leagueIds = () => LEAGUE.map(t => t.id);
+
+// Active une époque : construit LEAGUE (avec surcharges de nom/ville) et les règles.
+function setEra(eraId) {
+  const era = (typeof ERAS !== 'undefined' && ERAS[eraId]) ? ERAS[eraId] : null;
+  if (!era) { LEAGUE = TEAMS.slice(); ERA_RULES = { threePA: 1.0, pace: 1.0, fgAdj: 0, confMode: 'conf' }; return null; }
+  const ov = (typeof ERA_TEAM_META !== 'undefined' && ERA_TEAM_META[eraId]) ? ERA_TEAM_META[eraId] : {};
+  LEAGUE = era.teams.map(id => Object.assign({}, teamMetaBase(id), ov[id] || {}));
+  ERA_RULES = Object.assign({ threePA: 1.0, pace: 1.0, fgAdj: 0, confMode: 'conf' }, era.rules || {});
+  return era;
+}
+function teamMetaBase(id) { return TEAMS.find(t => t.id === id) || { id, city: id, name: id, conf: 'EAST', div: '', c1: '#444', c2: '#999' }; }
+
 /* --------------------------- Génération joueurs -------------------------- */
 function genName() {
   return pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES);
@@ -148,20 +165,25 @@ function makePlayerReal(e) {
   return p;
 }
 
-// Effectif d'une équipe : UNIQUEMENT des joueurs réels (aucun nom généré).
-function makeRosterForTeam(teamId, strength) {
-  const real = (typeof REAL_ROSTERS !== 'undefined') ? REAL_ROSTERS[teamId] : null;
-  if (!real || !real.length) return makeRoster(strength);
-  return real.map(makePlayerReal);
+// Effectif d'une équipe : joueurs réels (moderne = REAL_ROSTERS ; époque = ERA_ROSTERS).
+function makeRosterForTeam(teamId, strength, eraId) {
+  let src = null;
+  if (eraId && eraId !== 'modern' && typeof ERA_ROSTERS !== 'undefined' && ERA_ROSTERS[eraId])
+    src = ERA_ROSTERS[eraId][teamId];
+  else if (typeof REAL_ROSTERS !== 'undefined')
+    src = REAL_ROSTERS[teamId];
+  if (!src || !src.length) return makeRoster(strength);
+  return src.map(makePlayerReal);
 }
 
-// Construit l'univers : toutes les équipes avec leur effectif + rotation auto
-function buildLeague(userTeamId) {
+// Construit l'univers : équipes actives (LEAGUE) avec effectif + rotation auto
+function buildLeague(userTeamId, eraId) {
+  const ids = leagueIds();
   const strengths = {};
-  TEAMS.forEach(t => strengths[t.id] = 0.4 + rnd() * 0.5);
+  ids.forEach(id => strengths[id] = 0.4 + rnd() * 0.5);
   const teams = {};
-  TEAMS.forEach(t => {
-    const roster = makeRosterForTeam(t.id, strengths[t.id]);
+  LEAGUE.forEach(t => {
+    const roster = makeRosterForTeam(t.id, strengths[t.id], eraId);
     // Schéma par défaut adapté à l'effectif
     const off = suggestOffScheme(roster), def = suggestDefScheme(roster);
     teams[t.id] = {
@@ -178,12 +200,12 @@ function buildLeague(userTeamId) {
     teams[t.id].priorities = autoPriorities(teams[t.id]);
   });
   // Picks de draft échangeables : chaque équipe possède ses 1er & 2e tours des 3 prochaines années
-  const startSeason = 2026;
-  TEAMS.forEach(t => {
-    teams[t.id].picks = [];
+  const startSeason = (typeof ERAS !== 'undefined' && eraId && ERAS[eraId]) ? ERAS[eraId].year : 2026;
+  ids.forEach(id => {
+    teams[id].picks = [];
     for (let y = 1; y <= 3; y++) {
-      teams[t.id].picks.push({ kind: 'pick', year: startSeason + y, round: 1, from: t.id });
-      teams[t.id].picks.push({ kind: 'pick', year: startSeason + y, round: 2, from: t.id });
+      teams[id].picks.push({ kind: 'pick', year: startSeason + y, round: 1, from: id });
+      teams[id].picks.push({ kind: 'pick', year: startSeason + y, round: 2, from: id });
     }
   });
   return teams;
@@ -327,7 +349,7 @@ function genTeamBox(team, opp, portion = 1) {
   });
   const totW = box.reduce((s, b) => s + b.weight, 0) || 1;
 
-  const basePoss = 100 * off.pace * oppD.pace;
+  const basePoss = 100 * off.pace * oppD.pace * (ERA_RULES.pace || 1);
   const possessions = Math.max(4, gauss(basePoss, 3) * portion);
 
   box.forEach(b => {
@@ -337,15 +359,16 @@ function genTeamBox(team, opp, portion = 1) {
 
     const fgaMean = poss * 0.95;
     const fga = Math.max(0, Math.round(gauss(fgaMean, Math.max(0.6, fgaMean * 0.2))));
-    let threeRate = clamp((p.shooting - 55) / 90, 0.05, 0.62) * (p.pos === 'C' ? 0.4 : 1) * off.three * oppD.opp3;
-    threeRate = clamp(threeRate, 0.02, 0.82);
+    let threeRate = clamp((p.shooting - 55) / 90, 0.05, 0.62) * (p.pos === 'C' ? 0.4 : 1) * off.three * oppD.opp3 * (ERA_RULES.threePA != null ? ERA_RULES.threePA : 1);
+    threeRate = clamp(threeRate, 0, 0.82);
     const tpa = Math.round(fga * threeRate);
     const twoA = fga - tpa;
 
     const defAdj = (oppDefR - 75) * 0.0035;
-    let two_pct = (clamp(0.40 + (p.inside - 60) * 0.0032 - defAdj, 0.30, 0.66)) * off.inside * oppD.oppInside;
+    const eraFg = ERA_RULES.fgAdj || 0;
+    let two_pct = (clamp(0.40 + (p.inside - 60) * 0.0032 - defAdj, 0.30, 0.66)) * off.inside * oppD.oppInside + eraFg;
     two_pct = clamp(two_pct, 0.27, 0.70);
-    let three_pct = clamp(0.30 + (p.shooting - 65) * 0.0032 - defAdj, 0.22, 0.47) * (0.55 + 0.45 * off.three);
+    let three_pct = clamp(0.30 + (p.shooting - 65) * 0.0032 - defAdj, 0.22, 0.47) * (0.55 + 0.45 * off.three) + eraFg;
     three_pct = clamp(three_pct, 0.20, 0.48);
 
     let fgm2 = 0; for (let i = 0; i < twoA; i++) if (rnd() < two_pct) fgm2++;
@@ -377,29 +400,46 @@ function genTeamBox(team, opp, portion = 1) {
 }
 
 /* ------------------------------- Blessures ------------------------------- */
-const INJURIES = [
-  'entorse de la cheville', 'élongation à la cuisse', 'contusion au genou', 'claquage aux ischios',
-  'tendinite', 'commotion', 'douleur au bas du dos', 'entorse du poignet', 'foulure du pied',
-  'inflammation au genou', 'étirement à l\'aine', 'contusion à l\'épaule',
-];
-// Décrémente les blessures de toute la ligue (un jour de calendrier)
+const INJ_MINOR = ['entorse de la cheville', 'contusion au genou', 'douleur au bas du dos', 'foulure du pied',
+  'contusion à l\'épaule', 'raideur au cou', 'ampoule', 'coup au visage'];
+const INJ_MODERATE = ['élongation à la cuisse', 'claquage aux ischios', 'tendinite rotulienne', 'entorse du poignet',
+  'étirement à l\'aine', 'commotion cérébrale', 'entorse du pouce', 'fasciite plantaire'];
+const INJ_MAJOR = ['fracture de la main', 'déchirure musculaire', 'fracture du pied', 'entorse grave du genou',
+  'lésion du ménisque', 'fracture de l\'orbite', 'luxation de l\'épaule'];
+const INJ_SEASON = ['rupture du tendon d\'Achille', 'rupture des ligaments croisés (LCA)', 'fracture de la jambe',
+  'rupture du tendon rotulien', 'microfracture du genou'];
+
+// Décrémente les blessures de toute la ligue (un jour). Séquelle possible au retour d'une blessure grave.
 function healInjuries(gameState) {
   Object.values(gameState.teams).forEach(t => t.roster.forEach(p => {
-    if (p.injuryGames > 0) { p.injuryGames--; if (p.injuryGames <= 0) { p.injuryGames = 0; p._injuryDesc = null; } }
+    if (p.injuryGames > 0) {
+      p.injuryGames--;
+      if (p.injuryGames <= 0) {
+        p.injuryGames = 0; p._injuryDesc = null; p._injurySev = null;
+        if (p._severe) {   // séquelle : légère baisse au retour d'une blessure majeure/de saison
+          applyOvrDelta(p, -randInt(1, 3));
+          p._severe = false;
+        }
+      }
+    }
   }));
 }
-// Génère d'éventuelles blessures pour une équipe qui vient de jouer. Renvoie la liste des nouvelles.
+// Génère d'éventuelles blessures pour une équipe qui vient de jouer. Paliers de gravité.
 function maybeInjure(team) {
   const out = [];
   team.roster.forEach(p => {
     if (p.injuryGames > 0) return;
-    const load = clamp((team.minutes[p.id] || 0) / 34, 0, 1.2);
-    const risk = 0.004 * load;                 // ~0.4% pondéré par les minutes
-    if (rnd() < risk) {
-      p.injuryGames = randInt(2, 24);
-      p._injuryDesc = pick(INJURIES);
-      out.push({ id: p.id, name: p.name, games: p.injuryGames, desc: p._injuryDesc });
-    }
+    const load = clamp((team.minutes[p.id] || 0) / 34, 0, 1.3);
+    const ageRisk = p.age >= 34 ? 1.5 : p.age >= 31 ? 1.2 : p.age <= 22 ? 1.1 : 1;
+    if (rnd() >= 0.006 * load * ageRisk) return;  // ~0.6% pondéré minutes/âge
+    const r = rnd();
+    let games, desc, sev, severe = false;
+    if (r < 0.60) { games = randInt(1, 6); sev = 'légère'; desc = pick(INJ_MINOR); }
+    else if (r < 0.85) { games = randInt(8, 20); sev = 'modérée'; desc = pick(INJ_MODERATE); }
+    else if (r < 0.965) { games = randInt(24, 48); sev = 'grave'; desc = pick(INJ_MAJOR); severe = true; }
+    else { games = randInt(60, 110); sev = 'saison'; desc = pick(INJ_SEASON); severe = true; }
+    p.injuryGames = games; p._injuryDesc = desc; p._injurySev = sev; p._severe = severe;
+    out.push({ id: p.id, name: p.name, games, desc, sev });
   });
   return out;
 }
@@ -451,7 +491,7 @@ function accumulate(team, box) {
 /* ------------------------------ Calendrier ------------------------------- */
 // Génère un calendrier équilibré (chaque équipe ~ nbGames matchs)
 function buildSchedule(nbGames = 82) {
-  const ids = TEAMS.map(t => t.id);
+  const ids = leagueIds();
   const games = [];  // {home, away}
   // Round-robin double, puis on limite/complète
   for (let i=0;i<ids.length;i++){
@@ -495,7 +535,7 @@ function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1
 
 /* ------------------------------ Classements ------------------------------ */
 function standings(gameState, conf) {
-  return TEAMS.filter(t => !conf || t.conf === conf)
+  return LEAGUE.filter(t => !conf || t.conf === conf)
     .map(t => {
       const s = gameState.teams[t.id];
       return { team: t, ...s, pct: s.w+s.l ? s.w/(s.w+s.l) : 0,
@@ -633,7 +673,7 @@ function movePick(fromTeam, toTeam, pk) {
 function aiConsiderTrade(gameState) {
   if (rnd() > 0.10) return null;
   const user = gameState.teams[gameState.userTeam];
-  const others = TEAMS.filter(t => t.id !== gameState.userTeam).map(t => t.id);
+  const others = leagueIds().filter(id => id !== gameState.userTeam);
   const otherId = pick(others);
   const other = gameState.teams[otherId];
 
@@ -757,21 +797,24 @@ function prospectDisplay(p) {
 
 // Ordre de draft = pire bilan en premier (loterie simplifiée)
 function draftOrder(gameState) {
-  return TEAMS.map(t => gameState.teams[t.id])
+  return leagueIds().map(id => gameState.teams[id])
     .sort((a, b) => a.w - b.w || rnd() - 0.5)
     .map(s => s.id);
 }
 
-// Pool d'agents libres : vétérans réels connus (REAL_FREE_AGENTS) + éventuels compléments
-function genFreeAgents(count = 40) {
+// Pool d'agents libres. Moderne : vétérans réels (REAL_FREE_AGENTS). Époques : joueurs générés.
+function genFreeAgents(eraId) {
   const fas = [];
-  const pool = (typeof REAL_FREE_AGENTS !== 'undefined') ? REAL_FREE_AGENTS.slice() : [];
-  pool.forEach(e => {
-    const p = makePlayer(e.pos, { base: e.ovr, age: e.age || randInt(24, 35), years: 0 });
-    p.name = e.n; p.ovr = e.ovr; p.real = true;
-    p.potential = Math.max(p.potential, p.ovr, e.pot || 0);
-    p.salary = contractValue(p.ovr, p.age);
-    fas.push(p);
-  });
+  if ((!eraId || eraId === 'modern') && typeof REAL_FREE_AGENTS !== 'undefined') {
+    REAL_FREE_AGENTS.forEach(e => {
+      const p = makePlayer(e.pos, { base: e.ovr, age: e.age || randInt(24, 35), years: 0 });
+      p.name = e.n; p.ovr = e.ovr; p.real = true;
+      p.potential = Math.max(p.potential, p.ovr, e.pot || 0);
+      p.salary = contractValue(p.ovr, p.age);
+      fas.push(p);
+    });
+  } else {
+    for (let i = 0; i < 24; i++) fas.push(makePlayer(pick(POSITIONS), { base: randInt(58, 76), age: randInt(23, 35), years: 0 }));
+  }
   return fas.sort((a, b) => b.ovr - a.ovr);
 }

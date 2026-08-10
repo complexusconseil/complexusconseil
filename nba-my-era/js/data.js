@@ -45,7 +45,10 @@ const TEAMS = [
   { id: 'SAS', city: 'San Antonio',  name: 'Spurs',         conf: 'WEST', div: 'Sud-Ouest',  c1: '#C4CED4', c2: '#000000' },
 ];
 
-function teamById(id) { return TEAMS.find(t => t.id === id); }
+// teamById renvoie la métadonnée d'époque active si disponible (LEAGUE), sinon la moderne.
+function teamById(id) {
+  return (typeof LEAGUE !== 'undefined' && LEAGUE.find(t => t.id === id)) || TEAMS.find(t => t.id === id);
+}
 
 // Pools de noms pour générer des joueurs fictifs plausibles
 const FIRST_NAMES = [

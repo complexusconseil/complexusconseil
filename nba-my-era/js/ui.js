@@ -55,19 +55,23 @@ const UI = {
 
   /* --------------------------- Écran d'accueil -------------------------- */
   homeScreen() {
-    const cards = TEAMS.map(t => `
-      <div class="team-card" data-team="${t.id}">
-        <div class="logo" style="background:${t.c1};border-color:${t.c2}">${t.id}</div>
+    const era = this._era && ERAS[this._era] ? this._era : 'modern';
+    this._era = era;
+    setEra(era);   // aligne LEAGUE/couleurs sur l'époque choisie pour l'aperçu
+    const eraBtns = Object.entries(ERAS).map(([k, v]) =>
+      `<button class="btn ${k === era ? 'primary' : 'ghost'} sm" data-era="${k}">${v.name.split(' — ')[0].split(' (')[0]}</button>`).join(' ');
+    const cards = ERAS[era].teams.map(id => { const t = teamById(id);
+      return `<div class="team-card" data-team="${id}">
+        <div class="logo" style="background:${t.c1};border-color:${t.c2}">${id}</div>
         <div class="cname">${t.name}</div>
-        <div class="cmeta">${t.city} · ${CONFS[t.conf]}</div>
-      </div>`).join('');
+        <div class="cmeta">${t.city}</div>
+      </div>`; }).join('');
     const canResume = Game.hasSave();
     return `
       <div class="hero">
         <h1>NBA <span>My Era</span></h1>
-        <p>Prenez les rênes d'une franchise NBA. Gérez l'effectif, le cinq de départ, les rotations,
-           les transferts, la draft et les agents libres — saison après saison.</p>
-        <p class="muted" style="font-size:12.5px">Effectifs : instantané <b>au 10/08/2026</b> (saison 2026-27), reconstitué au mieux depuis des sources web — à vérifier, et modifiable en jeu.</p>
+        <p>Prenez les rênes d'une franchise NBA. Effectif, tactiques, transferts, draft, blessures,
+           playoffs — saison après saison, à travers les époques de l'histoire NBA.</p>
       </div>
       <main>
         <div class="card">
@@ -79,19 +83,26 @@ const UI = {
               <input type="file" id="file-import" accept="application/json" class="hidden">
             </div>
           </div>
+          <h3>Choisissez une époque</h3>
+          <div class="row" style="flex-wrap:wrap">${eraBtns}</div>
+          <p class="muted" style="font-size:12.5px;margin-top:6px">${ERAS[era].name} · ${ERAS[era].rules.note || ''}</p>
           <h3>Votre nom de manager</h3>
           <input type="text" id="mgr-name" placeholder="Ex : Alex" style="width:220px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:8px 10px">
-          <h3>Choisissez votre franchise</h3>
+          <h3>Choisissez votre franchise (${ERAS[era].teams.length} équipes)</h3>
           <div class="team-picker">${cards}</div>
           <div class="row end" style="margin-top:16px">
             <button class="btn primary" id="btn-start" disabled>Démarrer ma carrière →</button>
           </div>
         </div>
+        <div class="footer-note">Effectifs modernes = instantané best-effort au 10/08/2026. Époques classiques = rosters de légendes curés (best-effort) + règles adaptées. Joueurs réels ; aucune licence.</div>
       </main>`;
   },
 
   wireHome() {
     let sel = null;
+    document.querySelectorAll('[data-era]').forEach(b => b.addEventListener('click', () => {
+      this._era = b.dataset.era; this.render();
+    }));
     document.querySelectorAll('.team-card').forEach(c => {
       c.addEventListener('click', () => {
         document.querySelectorAll('.team-card').forEach(x => x.classList.remove('selected'));
@@ -102,7 +113,7 @@ const UI = {
     this.el('btn-start').addEventListener('click', () => {
       if (!sel) return;
       const name = this.el('mgr-name').value.trim() || 'Manager';
-      Game.newGame(sel, name);
+      Game.newGame(sel, name, this._era || 'modern');
       this.tab = 'dash'; this.render();
     });
     const resume = this.el('btn-resume');
@@ -130,6 +141,7 @@ const UI = {
         </div>
         <div class="spacer"></div>
         <span class="chip">Saison <b>${s.season}</b></span>
+        ${s.eraId && s.eraId!=='modern' && ERAS[s.eraId] ? `<span class="chip">${ERAS[s.eraId].name.split(' — ')[0]}</span>` : ''}
         <span class="chip">${phaseLabel}</span>
         <span class="chip">Bilan <b>${ut.w}-${ut.l}</b></span>
         <span class="chip">Masse sal. <b>${sal} M$</b></span>
@@ -147,7 +159,8 @@ const UI = {
     if (s.phase === 'playoffs') tabs.push(['playoffs', '🏆 Playoffs']);
     if (s.phase === 'offseason') tabs.push(['offseason', '🌴 Intersaison']);
     tabs.push(['trades', '🔁 Transferts'], ['scouting', '🔭 Scouting'],
-              ['standings', '📊 Classements'], ['league', '🌐 Ligue'], ['news', '📰 Actus']);
+              ['standings', '📊 Classements'], ['league', '🌐 Ligue'],
+              ['history', '📜 Histoire'], ['news', '📰 Actus']);
     // onglet actif par défaut cohérent avec la phase
     if (s.phase === 'playoffs' && this.tab === 'play') this.tab = 'playoffs';
     if (s.phase === 'offseason' && (this.tab === 'play' || this.tab === 'schedule' || this.tab==='playoffs')) this.tab = 'offseason';
@@ -174,6 +187,7 @@ const UI = {
       play: () => this.playView(), schedule: () => this.scheduleView(), standings: () => this.standingsView(),
       league: () => this.leagueView(), news: () => this.newsView(), trades: () => this.tradesView(),
       playoffs: () => this.playoffsView(), offseason: () => this.offseasonView(),
+      history: () => this.historyView(),
     };
     m.innerHTML = (map[this.tab] || map.dash)();
     this.wireTab();
@@ -537,15 +551,50 @@ const UI = {
         }</tbody></table></div>
         <p class="muted" style="font-size:12px;margin-top:6px">Les 8 premiers de chaque conférence sont qualifiés pour les playoffs.</p></div>`;
     };
+    if (s.confMode === 'single') {
+      const st = standings(s);
+      return `<div class="card"><h2>Classement — ${ERAS[s.eraId] ? ERAS[s.eraId].name : 'Ligue'}</h2>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th class="name">Équipe</th><th>V</th><th>D</th><th>%</th><th>Diff</th><th>Série</th></tr></thead><tbody>${
+          st.map((x,i)=>`<tr style="${x.team.id===s.userTeam?'background:rgba(240,165,0,.08)':''}">
+            <td>${i+1}</td>
+            <td class="name">${this.badge(x.team.id,22)} ${x.team.city} ${x.team.name}${i===7?' <span class="muted">— barrage</span>':''}</td>
+            <td><b>${x.w}</b></td><td>${x.l}</td><td>${this.fmt(x.pct*100,0)}</td>
+            <td>${x.diff>=0?'+':''}${x.diff}</td>
+            <td>${x.streak>0?`<span style="color:var(--green)">${x.streak}V</span>`:x.streak<0?`<span style="color:var(--red)">${-x.streak}D</span>`:'—'}</td></tr>`).join('')
+        }</tbody></table></div>
+        <p class="muted" style="font-size:12px;margin-top:6px">Les 8 premiers sont qualifiés pour les playoffs (tableau unique).</p></div>`;
+    }
     return `<div class="grid cols2">${tbl('EAST')}${tbl('WEST')}</div>`;
+  },
+
+  /* ------------------------------ Historique ---------------------------- */
+  historyView() {
+    const s = Game.state;
+    const trophies = s.trophies.length ? s.trophies.map(y => `🏆 ${y}`).join(' · ') : 'Aucun titre pour l\'instant.';
+    const rows = (s.history || []).map(h => {
+      const ch = teamById(h.champion);
+      const pill = h.userResult === 'Champion' ? 'win' : h.userResult === 'Non qualifié' ? 'loss' : '';
+      return `<tr>
+        <td>${h.season}</td>
+        <td class="name">${this.badge(h.champion,20)} ${ch.city} ${ch.name}</td>
+        <td class="name">${h.runnerUp ? teamById(h.runnerUp).name : '—'}</td>
+        <td>${h.userW}-${h.userL}</td>
+        <td><span class="pill ${pill}">${h.userResult}</span></td>
+        <td class="muted">${h.leader ? `${h.leader.name} (${h.leader.ppg})` : '—'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" class="muted center">Aucune saison terminée. L\'histoire s\'écrit sur le terrain.</td></tr>';
+    return `<div class="card"><h2>🏆 Palmarès du club</h2><p>${trophies}</p></div>
+      <div class="card"><h2>📜 Histoire de la ligue</h2>
+        <div class="table-wrap"><table><thead><tr><th>Saison</th><th class="name">Champion</th><th class="name">Finaliste</th><th>Votre bilan</th><th>Parcours</th><th>Meilleur marqueur</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   },
 
   /* --------------------------------- Ligue ------------------------------ */
   leagueView() {
     const s = Game.state;
-    const sel = this._leagueTeam || TEAMS.find(t=>t.id!==s.userTeam).id;
+    const league = LEAGUE;
+    const sel = (this._leagueTeam && s.teams[this._leagueTeam]) ? this._leagueTeam : league.find(t=>t.id!==s.userTeam).id;
     this._leagueTeam = sel;
-    const opts = TEAMS.map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${t.city} ${t.name} (${s.teams[t.id].w}-${s.teams[t.id].l})</option>`).join('');
+    const opts = league.map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${t.city} ${t.name} (${s.teams[t.id].w}-${s.teams[t.id].l})</option>`).join('');
     return `<div class="card"><div class="row" style="justify-content:space-between">
         <h2>Explorer la ligue</h2>
         <select id="league-sel">${opts}</select></div></div>
@@ -565,10 +614,10 @@ const UI = {
   tradesView() {
     const s = Game.state; const ut = Game.ut();
     if (s.phase === 'playoffs') return `<div class="card center"><h2>Marché fermé</h2><p class="muted">Les transferts sont indisponibles pendant les playoffs.</p></div>`;
-    const partner = (this.tradePartner && this.tradePartner !== s.userTeam) ? this.tradePartner : TEAMS.find(t => t.id !== s.userTeam).id;
+    const partner = (this.tradePartner && this.tradePartner !== s.userTeam && s.teams[this.tradePartner]) ? this.tradePartner : LEAGUE.find(t => t.id !== s.userTeam).id;
     this.tradePartner = partner;
     const ot = s.teams[partner];
-    const opts = TEAMS.filter(t => t.id !== s.userTeam).map(t => `<option value="${t.id}" ${t.id === partner ? 'selected' : ''}>${t.city} ${t.name} (note ${teamOverall(s.teams[t.id])})</option>`).join('');
+    const opts = LEAGUE.filter(t => t.id !== s.userTeam).map(t => `<option value="${t.id}" ${t.id === partner ? 'selected' : ''}>${t.city} ${t.name} (note ${teamOverall(s.teams[t.id])})</option>`).join('');
 
     const col = (team, side) => {
       const players = [...team.roster].sort((a, b) => b.ovr - a.ovr).map(p => `<tr>

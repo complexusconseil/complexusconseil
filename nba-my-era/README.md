@@ -23,7 +23,10 @@ Aucune installation, aucun serveur, aucune connexion internet requise.
 - **Options prioritaires en attaque** — définissez la hiérarchie offensive (qui prend le plus de tirs : option n°1, n°2…). Impacte directement le nombre de tirs et la production.
 - **Match par quart-temps** — jouez quart-temps par quart-temps, ajustez vos systèmes selon le score, puis consultez la feuille de match détaillée.
 - **Transferts réalistes** — échangez joueurs **et picks de draft** ; l'IA applique un **équilibre salarial** (type NBA), valorise jeunesse, potentiel et besoins de poste, et refuse les offres déséquilibrées. Des offres arrivent aussi spontanément.
-- **Scouting de draft** — explorez les **prochaines cuvées** (2027, 2028…), dépensez des points de scouting pour affiner l'évaluation des prospects (fourchette de note → note exacte). Têtes d'affiche réelles connues ; les autres prospects sont des projections.
+- **Scouting de draft** — explorez les **prochaines cuvées (jusqu'à 2030)**, dépensez des points de scouting pour affiner l'évaluation des prospects (fourchette de note → note exacte). Têtes d'affiche réelles connues ; les autres prospects sont des projections.
+- **Blessures** — paliers de gravité (légère → **de saison** type rupture d'Achille/LCA), exclusion de la simulation, guérison progressive et **séquelles** possibles au retour d'une blessure majeure.
+- **Historique & palmarès** — archive de chaque saison : champion, finaliste, votre parcours, meilleur marqueur de la ligue, et vos titres.
+- **Époques historiques** — démarrez à différentes **époques de la NBA** (années 60 « Russell & Wilt », 80 « Magic vs Bird », 90 « ère Jordan », 2010 « Warriors & LeBron », ou moderne), avec des **effectifs de légendes** et des **règles adaptées** (ligne à 3 points absente en 1968, rythme et fréquence du tir extérieur variables selon l'époque).
 - **Playoffs** — top 8 par conférence, séries au meilleur des 7, jusqu'aux Finales NBA. Jouez votre série match par match.
 - **Intersaison** — prolongations de contrat, **draft** (60 prospects, ordre inversé au classement), **agents libres**.
 - **Progression pluriannuelle** — les joueurs vieillissent, progressent ou déclinent, prennent leur retraite ; les rookies éclosent. Votre « era » se construit saison après saison.

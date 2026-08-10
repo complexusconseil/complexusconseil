@@ -113,13 +113,40 @@ function makeRoster(teamStrength) {
   return roster;
 }
 
+// Crée un joueur à partir d'une entrée d'effectif réel (nom/poste/note fournis)
+function makePlayerReal(e) {
+  const p = makePlayer(e.pos, { base: e.ovr, age: e.age != null ? e.age : randInt(22, 32) });
+  p.name = e.n;
+  p.ovr = clamp(e.ovr, 40, 99);            // respecter la note fournie
+  p.potential = Math.max(p.potential, p.ovr, e.pot || 0);
+  if ((e.age || 30) <= 23) p.potential = Math.max(p.potential, clamp(p.ovr + randInt(3, 9), p.ovr, 99));
+  p.salary = contractValue(p.ovr, p.age);
+  p.years = randInt(1, 4);
+  return p;
+}
+
+// Effectif d'une équipe : joueurs réels (si disponibles) complétés par des joueurs générés
+function makeRosterForTeam(teamId, strength) {
+  const real = (typeof REAL_ROSTERS !== 'undefined') ? REAL_ROSTERS[teamId] : null;
+  if (!real || !real.length) return makeRoster(strength);
+  const roster = real.map(makePlayerReal);
+  const posCycle = ['C', 'PF', 'SF', 'SG', 'PG', 'SF', 'SG'];
+  let i = 0;
+  while (roster.length < 15) {
+    const pos = posCycle[i++ % posCycle.length];
+    const base = clamp(randInt(56, 69) + Math.round((strength - 0.6) * 10), 50, 73);
+    roster.push(makePlayer(pos, { base, age: randInt(19, 33) }));
+  }
+  return roster;
+}
+
 // Construit l'univers : toutes les équipes avec leur effectif + rotation auto
 function buildLeague(userTeamId) {
   const strengths = {};
   TEAMS.forEach(t => strengths[t.id] = 0.4 + rnd() * 0.5);
   const teams = {};
   TEAMS.forEach(t => {
-    const roster = makeRoster(strengths[t.id]);
+    const roster = makeRosterForTeam(t.id, strengths[t.id]);
     teams[t.id] = {
       id: t.id,
       roster,

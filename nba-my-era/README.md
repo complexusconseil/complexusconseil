@@ -24,6 +24,16 @@ Aucune installation, aucun serveur, aucune connexion internet requise.
 - **Intersaison** — prolongations de contrat, **draft** (60 prospects, ordre inversé au classement), **agents libres**.
 - **Progression pluriannuelle** — les joueurs vieillissent, progressent ou déclinent, prennent leur retraite ; les rookies éclosent. Votre « era » se construit saison après saison.
 
+## 👤 Vrais noms & 🛡️ logos
+
+- **Vrais joueurs** — chaque équipe démarre avec un **effectif réel** (instantané ~saison 2024-25 :
+  titulaires + rotation), complété par des joueurs générés pour le fond de banc. C'est un instantané
+  indicatif et **entièrement modifiable en jeu** (transferts, coupes, agents libres, draft).
+- **Logos d'équipe** — le jeu affiche par défaut des **écussons stylisés aux vraies couleurs**.
+  Pour afficher les **vrais logos NBA**, déposez vos propres fichiers dans **`assets/logos/`**
+  (ex. `BOS.png`, `LAL.png`…) : le jeu les détecte automatiquement au démarrage.
+  Voir `assets/logos/README.md`. Les logos officiels sont des marques déposées et **ne sont pas fournis**.
+
 ## 🧱 Détails techniques
 
 - **HTML / CSS / JavaScript vanilla**, sans dépendance ni build.

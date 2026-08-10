@@ -15,7 +15,11 @@ const UI = {
   posTag(p) { return `<span class="pos-tag">${p}</span>`; },
   badge(id, size = 42) {
     const t = teamById(id);
-    return `<span class="badge" style="background:${t.c1};border-color:${t.c2};width:${size}px;height:${size}px;font-size:${size*0.34}px">${id}</span>`;
+    const style = `background:radial-gradient(circle at 30% 25%, ${t.c2}22, ${t.c1});border-color:${t.c2};width:${size}px;height:${size}px;font-size:${size*0.34}px`;
+    // Si un vrai logo a été déposé dans assets/logos/<ID>.png, on l'affiche ; sinon écusson aux couleurs.
+    const img = (typeof LOGO_AVAIL !== 'undefined' && LOGO_AVAIL[id])
+      ? `<img class="logo-img" src="assets/logos/${id}.png" alt="${id}">` : '';
+    return `<span class="badge" style="${style}">${img}<span class="mono">${id}</span></span>`;
   },
 
   toast(msg) {
@@ -118,7 +122,7 @@ const UI = {
     const sal = teamSalary(ut);
     return `
       <header class="topbar" style="background:linear-gradient(90deg, ${t.c1}, var(--bg2) 70%)">
-        <span class="badge" style="background:${t.c1};border-color:${t.c2}">${t.id}</span>
+        <span class="badge" style="background:radial-gradient(circle at 30% 25%, ${t.c2}22, ${t.c1});border-color:${t.c2}">${(typeof LOGO_AVAIL!=='undefined'&&LOGO_AVAIL[t.id])?`<img class="logo-img" src="assets/logos/${t.id}.png" alt="${t.id}">`:''}<span class="mono">${t.id}</span></span>
         <div class="tinfo">
           <b>${t.city} ${t.name}</b>
           <small>${s.managerName} · ${CONFS[t.conf]} · ${t.div}</small>
@@ -738,7 +742,22 @@ const UI = {
   },
 };
 
+/* --------------------- Détection des logos (optionnels) ------------------ */
+// Vérifie une fois au démarrage quels vrais logos ont été déposés dans assets/logos/.
+const LOGO_AVAIL = {};
+function preloadLogos(done) {
+  let pending = TEAMS.length;
+  if (!pending) return done();
+  TEAMS.forEach(t => {
+    const img = new Image();
+    img.onload = () => { LOGO_AVAIL[t.id] = true; if (--pending === 0) done(); };
+    img.onerror = () => { LOGO_AVAIL[t.id] = false; if (--pending === 0) done(); };
+    img.src = 'assets/logos/' + t.id + '.png';
+  });
+}
+
 /* ------------------------------ Démarrage -------------------------------- */
 window.addEventListener('DOMContentLoaded', () => {
-  UI.render();
+  UI.render();                 // rendu immédiat (écussons couleurs)
+  preloadLogos(() => UI.render());  // re-rendu si de vrais logos sont présents
 });

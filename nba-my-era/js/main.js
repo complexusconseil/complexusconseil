@@ -226,6 +226,26 @@ const Game = {
     return { game: g, res };
   },
 
+  // Prévisualise le prochain match (simulé, non appliqué) — pour le rendu 3D
+  previewUserGame() {
+    const s = this.state; const next = this.nextUserGame(); if (!next) return null;
+    while (s.dayIndex < next.day) this.simulateDay();
+    const g = s.schedule[s.dayIndex].find(x => x === next.game);
+    const res = simGame(s.teams[g.home], s.teams[g.away]);
+    return { g, res };
+  },
+  // Applique un résultat prévisualisé (après la 3D)
+  commitUserGame(g, res) {
+    const s = this.state;
+    if (g.played) return;
+    applyGameResult(s, g.home, g.away, res);
+    g.played = true; g.hs = res.home.score; g.as = res.away.score;
+    this.recordUserGame(g, res);
+    this.simulateDay();
+    this.checkSeasonEnd();
+    this.save();
+  },
+
   recordUserGame(g, res) {
     const s = this.state;
     const home = g.home === s.userTeam;
@@ -617,6 +637,17 @@ const Game = {
     const wantYears = p.age <= 26 ? 4 : p.age <= 30 ? 3 : p.age <= 33 ? 2 : 1;
     const ask = round1(clamp(market * factor * (resign ? 1 : 1.05), MIN_SALARY, maxSalary(p)));
     return { market, factor, loyalty, wantYears, ask, cap: maxSalary(p) };
+  },
+  // Intérêt du joueur pour une offre (pour l'affichage temps réel)
+  contractInterest(p, salary, years, resign) {
+    const d = this.contractDemand(p, resign);
+    const ratio = salary / (d.ask || 1);
+    const yearsPen = years < d.wantYears ? (d.wantYears - years) * 0.05 : 0;
+    const eff = ratio - yearsPen + d.loyalty;
+    const pct = clamp(Math.round(eff * 100), 0, 100);
+    const label = eff >= 0.98 ? 'Prêt à signer' : eff >= 0.84 ? 'Ouvert (contre-offre)' : eff >= 0.62 ? 'Réticent' : 'Refuse';
+    const color = eff >= 0.98 ? 'var(--green)' : eff >= 0.84 ? 'var(--accent)' : 'var(--red)';
+    return { pct, label, color, ask: d.ask, wantYears: d.wantYears, cap: d.cap };
   },
   _evalContract(p, salary, years, d) {
     const ratio = salary / (d.ask || 1);

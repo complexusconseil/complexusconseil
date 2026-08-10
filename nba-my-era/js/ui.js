@@ -215,6 +215,41 @@ const UI = {
     if (!Game.state.fired) this._firedShown = false;
   },
 
+  // Overlay 3D : anime le match puis applique le résultat
+  open3D(g, res) {
+    if (!window.Court3D || !window.THREE) { this.toast('Rendu 3D indisponible.'); const out = { game: g, res }; Game.commitUserGame(g, res); this.showGameResult(g, res); return; }
+    const homeMeta = teamById(g.home), awayMeta = teamById(g.away);
+    const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'c3d-bg';
+    bg.innerHTML = `<div style="width:min(1120px,96vw);background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="scoreboard" style="padding:8px">
+          <div class="tm">${this.badge(g.home,36)}<div><b>${homeMeta.name}</b></div><div class="sc" id="c3d-hs">0</div></div>
+          <div style="color:var(--muted);font-weight:800">—</div>
+          <div class="tm">${this.badge(g.away,36)}<div><b>${awayMeta.name}</b></div><div class="sc" id="c3d-as">0</div></div>
+        </div>
+        <div id="court3d" style="width:100%;height:58vh;background:#0b0e14"></div>
+        <div class="row" style="padding:10px;align-items:center">
+          <div class="muted" style="flex:1;font-size:12px">🖱️ Glissez pour tourner la caméra · molette pour zoomer</div>
+          <button class="btn ghost" id="c3d-skip">⏩ Passer</button>
+          <button class="btn primary" id="c3d-done">Continuer →</button>
+        </div></div>`;
+    document.body.appendChild(bg);
+    const cont = this.el('court3d');
+    const hs = this.el('c3d-hs'), as = this.el('c3d-as');
+    let ctrl;
+    try {
+      ctrl = Court3D.play(cont, homeMeta, awayMeta, res, {
+        onScore: (h, a) => { hs.textContent = h; as.textContent = a; }, onDone: () => {}, speed: 1,
+      });
+    } catch (err) {
+      bg.remove(); this.toast('Rendu 3D indisponible sur ce navigateur.');
+      Game.commitUserGame(g, res); this.showGameResult(g, res); return;
+    }
+    this.el('c3d-skip').addEventListener('click', () => ctrl.skip());
+    this.el('c3d-done').addEventListener('click', () => {
+      ctrl.stop(); bg.remove(); Game.commitUserGame(g, res); this.showGameResult(g, res);
+    });
+  },
+
   firedModal() {
     this.modal(`<h2 style="color:var(--red)">⚠️ Vous avez été limogé</h2>
       <p>La direction a perdu confiance après des objectifs non atteints. Le propriétaire vous propose toutefois un dernier sursis pour redresser la barre.</p>
@@ -552,8 +587,9 @@ const UI = {
       </div>
       <p class="center muted">${home?'À domicile':'À l\'extérieur'} · Note ${teamOverall(ut)} vs ${teamOverall(ot)}</p>
       <p class="center muted" style="font-size:12.5px">Tactiques : ⚔️ ${OFF_SCHEMES[ut.offScheme].name} · 🛡️ ${DEF_SCHEMES[ut.defScheme].name} <small>(modifiables dans l'onglet Tactiques ou en direct)</small></p>
-      <div class="row" style="justify-content:center;margin-top:8px">
-        <button class="btn primary" data-act="startlive">🏀 Jouer (quart par quart)</button>
+      <div class="row" style="justify-content:center;margin-top:8px;flex-wrap:wrap">
+        <button class="btn primary" data-act="watch3d">🎥 Regarder en 3D</button>
+        <button class="btn ghost" data-act="startlive">🏀 Jouer (quart par quart)</button>
         <button class="btn ghost" data-act="simgame">⏩ Simuler rapidement</button>
       </div>
     </div>
@@ -1135,14 +1171,15 @@ const UI = {
         <td class="name">${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}${rookie ? ' <span class="pill win">rookie</span>' : ''}</td>
         <td>${p.age}</td>
         <td>${contractValue(p.ovr,p.age)} <small class="muted">/ max ${cap}</small></td>
-        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" max="${cap}" value="${est}" data-resign-sal="${p.id}"></td>
-        <td><select data-resign-yr="${p.id}"><option>1</option><option ${rookie?'':'selected'}>2</option><option>3</option><option ${rookie?'selected':''}>4</option></select></td>
+        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" max="${cap}" value="${est}" data-resign-sal="${p.id}" data-nego="${p.id}:1"></td>
+        <td><select data-resign-yr="${p.id}" data-nego="${p.id}:1"><option>1</option><option ${rookie?'':'selected'}>2</option><option>3</option><option ${rookie?'selected':''}>4</option></select></td>
+        <td id="nego-${p.id}" style="min-width:130px">${this.negoGaugeHtml(Game.contractInterest(p, est, rookie?4:2, true))}</td>
         <td><button class="btn green sm" data-resign="${p.id}">${rookie ? 'Extension rookie' : 'Prolonger'}</button>
             <button class="btn red sm" data-let-go="${p.id}">Laisser partir</button></td>
-      </tr>`; }).join('') : '<tr><td colspan="6" class="muted center">Aucun contrat expirant — tous vos joueurs sont sous contrat.</td></tr>';
+      </tr>`; }).join('') : '<tr><td colspan="7" class="muted center">Aucun contrat expirant — tous vos joueurs sont sous contrat.</td></tr>';
     return `<div class="card"><h2>Contrats expirants</h2>
       <p class="muted" style="margin-bottom:10px">Prolongez vos joueurs clés avant qu'ils ne deviennent agents libres. Les <b>rookies</b> peuvent recevoir une <b>extension</b> (contrat max autorisé selon l'ancienneté).</p>
-      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Valeur / Max</th><th>Salaire/an</th><th>Durée</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Valeur / Max</th><th>Salaire/an</th><th>Durée</th><th>Intérêt</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row end" style="margin-top:12px"><button class="btn primary" data-act="to-draft">Passer à la Draft →</button></div>
     </div>`;
   },
@@ -1202,26 +1239,32 @@ const UI = {
         <td class="name">${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</td>
         <td>${p.age}</td><td class="muted">${p.potential}</td>
         <td>${d.ask} M$ <small class="muted">demandé · ${d.wantYears} ans</small></td>
-        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" max="${d.cap}" value="${d.ask}" data-fa-sal="${p.id}"></td>
-        <td><select data-fa-yr="${p.id}"><option>1</option><option>2</option><option ${d.wantYears>=3?'selected':''}>3</option><option ${d.wantYears>=4?'selected':''}>4</option></select></td>
+        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" max="${d.cap}" value="${d.ask}" data-fa-sal="${p.id}" data-nego="${p.id}:0"></td>
+        <td><select data-fa-yr="${p.id}" data-nego="${p.id}:0"><option>1</option><option>2</option><option ${d.wantYears>=3?'selected':''}>3</option><option ${d.wantYears>=4?'selected':''}>4</option></select></td>
+        <td id="nego-${p.id}" style="min-width:130px">${this.negoGaugeHtml(Game.contractInterest(p, d.ask, d.wantYears, false))}</td>
         <td><button class="btn green sm" data-sign="${p.id}" ${ut.roster.length>=15?'disabled':''}>Négocier</button></td>
       </tr>`;
     }).join('');
     return `<div class="card"><div class="row" style="justify-content:space-between"><h2>Agents libres</h2>
         <button class="btn ghost sm" data-act="fa-advance">⏩ Laisser le marché avancer</button></div>
       <p class="muted" style="margin-bottom:8px">Effectif : ${ut.roster.length}/15 · Masse ${teamSalary(ut)} M$. Proposez un contrat — le joueur peut <b>accepter</b>, <b>contre-offrir</b> ou <b>refuser</b>. Les meilleurs partent vite : la concurrence signe aussi.</p>
-      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Pot</th><th>Demande</th><th>Offre/an</th><th>Durée</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Pot</th><th>Demande</th><th>Offre/an</th><th>Durée</th><th>Intérêt</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row end" style="margin-top:12px"><button class="btn primary" data-act="finish-offseason">Terminer l'intersaison →</button></div>
     </div>`;
   },
 
+  negoGaugeHtml(it) {
+    return `<div class="progress" style="height:6px;margin-bottom:3px"><div style="width:${it.pct}%;background:${it.color}"></div></div>
+      <small style="color:${it.color};font-size:11px">${it.pct}% · ${it.label}</small>`;
+  },
   // Gestion d'une réponse de négociation (accept / counter / reject)
   handleNego(r, salSel, yrSel) {
     if (!r) return;
     if (r.status === 'accept') { this.toast(r.msg || 'Contrat accepté !'); this.render(); return; }
     if (r.status === 'counter') {
       const sEl = document.querySelector(salSel), yEl = document.querySelector(yrSel);
-      if (sEl) sEl.value = r.counterSalary; if (yEl) yEl.value = r.counterYears;
+      if (sEl) { sEl.value = r.counterSalary; sEl.dispatchEvent(new Event('input')); }
+      if (yEl) { yEl.value = r.counterYears; yEl.dispatchEvent(new Event('input')); }
       this.toast('📝 Contre-offre — ' + (r.msg || ''));
       return;   // on garde la contre-offre affichée (pas de re-render)
     }
@@ -1309,6 +1352,20 @@ const UI = {
       const r=Game.negotiateFreeAgent(id,sal,yr);
       this.handleNego(r, `[data-fa-sal="${id}"]`, `[data-fa-yr="${id}"]`);}));
 
+    // jauge d'intérêt en direct (négociations)
+    m.querySelectorAll('[data-nego]').forEach(el=>{
+      const [idStr,flag]=el.dataset.nego.split(':'); const id=+idStr; const resign=flag==='1';
+      const handler=()=>{
+        const salEl=m.querySelector(resign?`[data-resign-sal="${id}"]`:`[data-fa-sal="${id}"]`);
+        const yrEl=m.querySelector(resign?`[data-resign-yr="${id}"]`:`[data-fa-yr="${id}"]`);
+        const p= resign ? playerById(Game.ut(),id) : (Game.state.freeAgents||[]).find(x=>x.id===id);
+        const cell=m.querySelector(`#nego-${id}`);
+        if(!p||!salEl||!yrEl||!cell) return;
+        cell.innerHTML=this.negoGaugeHtml(Game.contractInterest(p,+salEl.value,+yrEl.value,resign));
+      };
+      el.addEventListener('input',handler); el.addEventListener('change',handler);
+    });
+
     // tactiques : schémas
     m.querySelectorAll('[data-off]').forEach(el=>el.addEventListener('change',()=>{Game.setOffScheme(el.dataset.off);this.render();}));
     m.querySelectorAll('[data-def]').forEach(el=>el.addEventListener('change',()=>{Game.setDefScheme(el.dataset.def);this.render();}));
@@ -1347,6 +1404,7 @@ const UI = {
       case 'checkend': Game.checkSeasonEnd(); R(); break;
       // match interactif
       case 'startlive': Game.startLiveGame(); this.tab='play'; R(); break;
+      case 'watch3d': { const pv=Game.previewUserGame(); if(pv)this.open3D(pv.g,pv.res); else R(); break; }
       case 'sim-quarter': Game.simQuarter(); R(); break;
       case 'finish-live': {
         const out = Game.finishLiveGame();

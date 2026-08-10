@@ -1,0 +1,197 @@
+/* ============================================================
+   Euro Manager — feuille de style
+   ============================================================ */
+:root{
+  --bg:#0d1117; --bg2:#161b22; --card:#1c2230; --card2:#232b3b;
+  --line:#2b3446; --txt:#e6edf3; --mut:#8b98a9;
+  --green:#2ea043; --green2:#3fb950; --pitch:#1f7a3a; --pitch2:#25913f;
+  --accent:#f0b429; --blue:#388bfd; --red:#f85149;
+  --ucl:#1f6feb; --uel:#2ea043; --rel:#da3633;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  background:linear-gradient(160deg,#0d1117,#131a26);
+  color:var(--txt); min-height:100vh; line-height:1.45;
+}
+#app{max-width:1100px;margin:0 auto;padding:14px}
+
+/* ---------- Boutons ---------- */
+.btn{
+  border:1px solid var(--line); background:var(--card2); color:var(--txt);
+  padding:9px 16px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600;
+  transition:.15s; margin:4px 4px 0 0;
+}
+.btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,var(--green),var(--green2));border-color:transparent;color:#fff}
+.btn.ghost{background:transparent}
+.btn.danger-ghost{background:transparent;border-color:var(--red);color:var(--red)}
+.btn.big{width:100%;padding:14px;font-size:16px;margin-top:10px}
+.btn.small{padding:6px 12px;font-size:13px}
+.btn.tiny{padding:4px 10px;font-size:12px}
+
+/* ---------- Écran de démarrage ---------- */
+.start{max-width:460px;margin:6vh auto;text-align:center}
+.logo{font-size:44px;letter-spacing:-1px;margin-bottom:4px}
+.tagline{color:var(--mut);margin-bottom:22px}
+.start-card{text-align:left}
+.start-card label{display:block;margin:12px 0 5px;font-size:13px;color:var(--mut);font-weight:600}
+.start-card input,.start-card select,
+select,input[type=text],input[type=number]{
+  width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--txt);font-size:14px;font-family:inherit;
+}
+.hint{color:var(--mut);font-size:12px;margin-top:14px}
+
+/* ---------- Carte ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.card h2{margin-bottom:10px}
+.card h3{margin-bottom:12px;font-size:16px}
+.card.center{text-align:center}
+
+/* ---------- Barre supérieure ---------- */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px;
+}
+.club-id{display:flex;align-items:center;gap:12px}
+.club-id .flag{font-size:30px}
+.club-id small{display:block;color:var(--mut);font-size:12px}
+.topbar .stats{display:flex;gap:18px;flex-wrap:wrap}
+.topbar .stats>div{text-align:center}
+.topbar .stats small{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.topbar .stats b{font-size:18px}
+.pos{color:var(--green2)} .neg{color:var(--red)}
+
+/* ---------- Onglets ---------- */
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px}
+.tab{white-space:nowrap;border:1px solid var(--line);background:var(--card2);color:var(--mut);
+  padding:9px 14px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600;transition:.15s}
+.tab:hover{color:var(--txt)}
+.tab.active{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border-color:transparent}
+
+/* ---------- Match card ---------- */
+.match-card{text-align:center}
+.match-header{color:var(--mut);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.match-teams{display:flex;align-items:center;justify-content:center;gap:22px;margin-bottom:8px}
+.match-teams .side{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:130px;padding:12px;border-radius:12px}
+.match-teams .side.me{background:rgba(46,160,67,.12);border:1px solid var(--green)}
+.match-teams .side .flag{font-size:34px}
+.match-teams .side small{color:var(--mut)}
+.match-teams .vs{font-size:20px;font-weight:800;color:var(--mut)}
+.match-loc{color:var(--mut);margin:6px 0 4px}
+
+/* ---------- Match live overlay ---------- */
+.overlay{position:fixed;inset:0;background:rgba(5,8,13,.82);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.match-live{width:100%;max-width:520px;text-align:center}
+.live-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:15px}
+.live-score{font-size:40px;font-weight:800;letter-spacing:2px}
+.live-min{color:var(--accent);font-weight:700;margin:8px 0}
+.live-feed{text-align:left;max-height:230px;overflow-y:auto;margin:10px 0}
+.feed-line{padding:7px 10px;border-radius:8px;margin-bottom:5px;background:var(--card2);font-size:14px}
+.feed-line.right{text-align:right}
+.feed-line.flash{animation:flash .6s}
+.fmin{color:var(--accent);font-weight:700;margin-right:4px}
+@keyframes flash{0%{background:var(--green);transform:scale(1.03)}100%{background:var(--card2);transform:scale(1)}}
+
+/* ---------- Tables ---------- */
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 9px;text-align:center;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+td:nth-child(2),th:nth-child(2){text-align:left}
+tbody tr:hover{background:var(--card2)}
+.squad-table tr.in-xi{background:rgba(46,160,67,.07)}
+.squad-table tr.listed{background:rgba(248,81,73,.08)}
+.pos-badge{display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;color:#fff}
+.pos-badge.G{background:#6e40c9} .pos-badge.D{background:#1f6feb}
+.pos-badge.M{background:#2ea043} .pos-badge.A{background:#da7633}
+.note{font-weight:800;padding:1px 6px;border-radius:6px}
+.note.elite{background:#1f6feb;color:#fff} .note.good{background:#2ea043;color:#fff}
+.note.ok{background:#3a4557;color:#fff} .note.low{background:#2b3446;color:var(--mut)}
+.moral{display:inline-block;width:46px;height:7px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle}
+.moral>span{display:block;height:100%;background:linear-gradient(90deg,var(--red),var(--accent),var(--green2))}
+.tag{background:var(--accent);color:#000;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700}
+
+/* ---------- Classement ---------- */
+.rank-table tr.me{background:rgba(46,160,67,.14);font-weight:700}
+.rank-table tr.ucl td:first-child{box-shadow:inset 3px 0 var(--ucl)}
+.rank-table tr.uel td:first-child{box-shadow:inset 3px 0 var(--uel)}
+.rank-table tr.rel td:first-child{box-shadow:inset 3px 0 var(--rel)}
+.legend{color:var(--mut);font-size:12px;margin-top:10px}
+.scorers{margin-left:20px}
+.scorers li{padding:4px 0}
+
+/* ---------- Terrain ---------- */
+.strength-line{color:var(--mut);margin-bottom:12px}
+.strength-line b{color:var(--txt)}
+.pitch{
+  background:
+    repeating-linear-gradient(0deg,var(--pitch),var(--pitch) 40px,var(--pitch2) 40px,var(--pitch2) 80px);
+  border:2px solid rgba(255,255,255,.25);border-radius:12px;padding:18px 8px;
+  display:flex;flex-direction:column-reverse;gap:12px;min-height:420px;justify-content:space-around;
+}
+.pitch-line{display:flex;justify-content:space-around;align-items:center}
+.spot{width:74px;text-align:center;cursor:pointer;transition:.15s}
+.spot:hover{transform:scale(1.08)}
+.spot-pos{font-size:10px;color:rgba(255,255,255,.7);font-weight:700}
+.spot-note{display:inline-block;width:34px;height:34px;line-height:34px;border-radius:50%;font-weight:800;margin:2px auto;border:2px solid rgba(255,255,255,.6)}
+.spot-name{font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);font-weight:600}
+.spot.empty .spot-add{display:inline-block;width:34px;height:34px;line-height:32px;border-radius:50%;border:2px dashed rgba(255,255,255,.6);color:#fff;font-size:20px;margin:2px auto}
+
+/* ---------- Tactique réglages ---------- */
+.tac-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.tac-row>label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);font-weight:600;gap:5px}
+.tac-slider{min-width:150px}
+.tac-slider input[type=range]{width:100%;accent-color:var(--green2)}
+.tac-val{color:var(--accent);font-weight:700}
+
+/* ---------- Picker / Offres ---------- */
+.picker{width:100%;max-width:480px;max-height:80vh;overflow:auto}
+.picker-list{max-height:52vh;overflow-y:auto;margin:8px 0}
+.picker-row{display:flex;align-items:center;gap:8px;padding:9px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.picker-row:hover{background:var(--card2);border-color:var(--line)}
+.picker-row.used{opacity:.5}
+.bid-msg{margin-top:8px;font-weight:600}
+.bid-msg.ok{color:var(--green2)} .bid-msg.ko{color:var(--red)}
+.offer-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}
+.offer-row span:first-child{flex:1;min-width:200px}
+
+/* ---------- Mercato filtres ---------- */
+.market-filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.market-filters input,.market-filters select{width:auto;flex:1;min-width:130px}
+
+/* ---------- Calendrier ---------- */
+.fixtures{display:flex;flex-direction:column;gap:4px}
+.fixture{display:grid;grid-template-columns:42px 1fr 70px 1fr;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--card2);font-size:13.5px}
+.fixture .jd{color:var(--mut);font-weight:700}
+.fixture .ft-dom{text-align:right} .fixture .ft-ext{text-align:left}
+.fixture .ft-score{text-align:center;font-weight:800;background:var(--bg2);border-radius:6px;padding:2px 0}
+.fixture .me{color:var(--green2);font-weight:700}
+.fixture.won{border-left:3px solid var(--green2)}
+.fixture.lost{border-left:3px solid var(--red)}
+.fixture.draw{border-left:3px solid var(--accent)}
+.fixture.next{border-left:3px solid var(--blue);background:rgba(56,139,253,.1)}
+
+/* ---------- News ---------- */
+.news-item{padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.news-item small{color:var(--mut);margin-right:6px;font-size:11px}
+.news-item:last-child{border:none}
+
+/* ---------- Toast ---------- */
+.toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,20px);background:var(--card2);
+  border:1px solid var(--green);color:var(--txt);padding:12px 20px;border-radius:10px;
+  opacity:0;transition:.3s;z-index:80;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Footer ---------- */
+.footbar{text-align:center;padding:8px 0 20px}
+
+@media(max-width:640px){
+  .topbar{flex-direction:column;align-items:flex-start}
+  .topbar .stats{gap:12px}
+  .topbar .stats b{font-size:16px}
+  .match-teams{gap:10px} .match-teams .side{min-width:100px}
+  .spot{width:56px} .spot-name{font-size:10px}
+  .pitch{min-height:340px}
+}

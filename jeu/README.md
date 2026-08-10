@@ -51,6 +51,9 @@ rendu moderne :
 - **Sélection et ordres par raycasting 3D** : on cible directement les objets (unités,
   ressources, bâtiments), y compris la cime des arbres — la récolte se donne au clic
   sans rater la cible.
+- **Barres d'avancement** flottantes sur les actions en cours : formation d'unités
+  (avec la file d'attente), construction, montée d'âge (barre dans le HUD), plus des
+  **barres de vie** au-dessus des unités et bâtiments endommagés.
 - **Terrain** multi-textures avec relief, **eau animée** réfléchissante, **arbres à
   canopée arrondie**, et **végétation dense** (milliers d'herbes, rochers, fleurs).
 - Caméra RTS inclinée (pan, rotation, zoom), **brouillard de guerre 3D**, flèches en vol.

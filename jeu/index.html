@@ -55,8 +55,10 @@
   .res .dot{width:12px; height:12px; border-radius:3px;}
   .res.food .dot{background:var(--food);} .res.wood .dot{background:var(--wood);}
   .res.gold .dot{background:var(--gold);} .res.stone .dot{background:var(--stone);} .res.pop .dot{background:#8ea3b0;}
-  .age{display:flex;align-items:center;gap:6px;background:#12202acc;border:1px solid var(--gold);color:var(--gold);
+  .age{position:relative;overflow:hidden;display:flex;align-items:center;gap:6px;background:#12202acc;border:1px solid var(--gold);color:var(--gold);
     padding:6px 10px;border-radius:10px;font-weight:700;font-size:13px;}
+  .age .afill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#e0a63c66,#e0a63c22);z-index:0;transition:width .2s;}
+  .age #ageTxt{position:relative;z-index:1;}
   .topbar .spacer{flex:1;}
   .iconbtn{pointer-events:auto; background:#12202acc; border:1px solid var(--line); color:var(--txt);
     width:38px; height:38px; border-radius:10px; font-size:17px; cursor:pointer;}
@@ -143,7 +145,7 @@
     <div class="res gold"><span class="dot"></span><span id="rGold">0</span></div>
     <div class="res stone"><span class="dot"></span><span id="rStone">0</span></div>
     <div class="res pop"><span class="dot"></span><span id="rPop">0/0</span></div>
-    <div class="age" id="ageBox">Âge I</div>
+    <div class="age" id="ageBox"><span class="afill" id="ageFill"></span><span id="ageTxt">Âge I</span></div>
     <div class="spacer"></div>
     <button class="iconbtn" id="btnHelp" title="Aide">?</button>
     <button class="iconbtn" id="btnMenu" title="Menu">≡</button>
@@ -456,7 +458,7 @@ const UC=Object.keys(UNIT), BC=Object.keys(BLD), NC=Object.keys(NODE);
 const SC=['idle','move','attackmove','attack','gather','return','tobuild','building'];
 function makeSnapshot(s){return{tick:s.tick,winner:s.winner,pl:{p1:packP(s.players.p1),p2:packP(s.players.p2)},
   u:s.units.map(u=>[u.id,u.owner==='p1'?0:1,UC.indexOf(u.type),Math.round(u.x),Math.round(u.y),Math.round(u.hp),SC.indexOf(u.state),Math.round(u.dir*100),Math.round(u.carry||0)]),
-  b:s.buildings.map(b=>[b.id,b.owner==='p1'?0:1,BC.indexOf(b.type),b.tx,b.ty,Math.round(b.hp),b.done?1:0,Math.round(b.progress*100),b.queue.length]),
+  b:s.buildings.map(b=>[b.id,b.owner==='p1'?0:1,BC.indexOf(b.type),b.tx,b.ty,Math.round(b.hp),b.done?1:0,Math.round(b.progress*100),b.queue.length,Math.round(b.trainT*10),b.queue[0]?UC.indexOf(b.queue[0]):-1]),
   n:s.nodes.map(n=>[n.id,NC.indexOf(n.type),Math.round(n.x),Math.round(n.y),Math.round(n.amount)]),
   pr:s.proj.map(p=>[Math.round(p.x),Math.round(p.y),Math.round(p.tx),Math.round(p.ty),+(p.t/p.dur).toFixed(2),p.fam==='ran'?1:0])};}
 function packP(p){return[Math.round(p.food),Math.round(p.wood),Math.round(p.gold),Math.round(p.stone),p.popCap,p.age,+p.advancing.toFixed(1),Object.keys(p.ups).join(',')];}
@@ -465,7 +467,7 @@ let prevSnap=null,lastSnap=null,snapTime=0;
 function ingestSnapshot(snap){prevSnap=lastSnap;lastSnap=snap;snapTime=performance.now();
   const g={tick:snap.tick,winner:snap.winner,players:{p1:unpackP(snap.pl.p1),p2:unpackP(snap.pl.p2)},units:[],buildings:[],nodes:[],fx:G?G.fx:[],proj:[]};
   for(const a of snap.u)g.units.push({id:a[0],owner:a[1]?'p2':'p1',type:UC[a[2]],x:a[3],y:a[4],hp:a[5],maxhp:UNIT[UC[a[2]]].hp,state:SC[a[6]],dir:a[7]/100,carry:a[8],anim:0,vx:0,vy:0});
-  for(const a of snap.b){const t=BLD[BC[a[2]]];g.buildings.push({id:a[0],owner:a[1]?'p2':'p1',type:BC[a[2]],tx:a[3],ty:a[4],x:a[3]*TILE+t.tw*TILE/2,y:a[4]*TILE+t.th*TILE/2,hp:a[5],maxhp:t.hp,done:!!a[6],progress:a[7]/100,queueLen:a[8]});}
+  for(const a of snap.b){const t=BLD[BC[a[2]]];g.buildings.push({id:a[0],owner:a[1]?'p2':'p1',type:BC[a[2]],tx:a[3],ty:a[4],x:a[3]*TILE+t.tw*TILE/2,y:a[4]*TILE+t.th*TILE/2,hp:a[5],maxhp:t.hp,done:!!a[6],progress:a[7]/100,queueLen:a[8],trainT:(a[9]||0)/10,curType:a[10]>=0?UC[a[10]]:null});}
   for(const a of snap.n)g.nodes.push({id:a[0],type:NC[a[1]],res:NODE[NC[a[1]]].res,x:a[2],y:a[3],amount:a[4],max:NODE[NC[a[1]]].amount,r:NODE[NC[a[1]]].r});
   for(const a of snap.pr)g.proj.push({x:a[0],y:a[1],tx:a[2],ty:a[3],t:a[4],dur:1,ranged:!!a[5]});
   G=g; if(!gameStarted)startRender(); if(G.winner)onWinner();}
@@ -825,6 +827,10 @@ function clampCam(){cam3.tx=clamp(cam3.tx,0,WORLD_W);cam3.tz=clamp(cam3.tz,0,WOR
 function s2w(sx,sy){if(!camera)return{x:cam3.tx,y:cam3.tz};_ndc.set((sx/innerWidth)*2-1,-(sy/innerHeight)*2+1);raycaster.setFromCamera(_ndc,camera);
   const o=raycaster.ray.origin,d=raycaster.ray.direction;if(Math.abs(d.y)<1e-6)return{x:cam3.tx,y:cam3.tz};const t=-o.y/d.y;return{x:o.x+d.x*t,y:o.z+d.z*t};}
 function w2s(wx,wy){_v3.set(wx,0,wy).project(camera);return{x:(_v3.x*0.5+0.5)*innerWidth,y:(-_v3.y*0.5+0.5)*innerHeight,behind:_v3.z>1};}
+function w2s3(wx,wy,wz){_v3.set(wx,wy,wz).project(camera);return{x:(_v3.x*0.5+0.5)*innerWidth,y:(-_v3.y*0.5+0.5)*innerHeight,behind:_v3.z>1};}
+function hpCol(f){return f>0.5?'#57b06a':f>0.25?'#e0a63c':'#d64b4b';}
+function bldTopY(type){const h=type==='tc'?44:type==='tower'?60:((BLD[type].trains||BLD[type].upgrades||type==='siege')?34:26);return h*(type==='house'||type==='tc'?1.7:1.2)+22;}
+function ovlBar(sx,sy,w,frac,color){ovlctx.fillStyle='#000a';ovlctx.fillRect(sx-w/2-1,sy-1,w+2,6);ovlctx.fillStyle=color;ovlctx.fillRect(sx-w/2,sy,w*clamp(frac,0,1),4);}
 const _rc=new THREE.Raycaster();
 /* sélection 3D : raycast sur les objets réels (unités, bâtiments, ressources)
    au lieu du sol — corrige le ciblage des ressources hautes (arbres, or). */
@@ -851,6 +857,7 @@ function render(dt){
   composer.render();
   // overlay 2D (rectangle de sélection)
   ovlctx.clearRect(0,0,innerWidth,innerHeight);
+  drawWorldBars();
   if(dragSel)drawDragRect();
   drawMinimap(); updateHUD();
 }
@@ -906,6 +913,19 @@ function drawMinimap(){mctx.clearRect(0,0,300,300);mctx.fillStyle='#0c151c';mctx
   const c0=s2w(0,0),c1=s2w(innerWidth,0),c2=s2w(innerWidth,innerHeight),c3=s2w(0,innerHeight);
   mctx.strokeStyle='#fff9';mctx.lineWidth=1.5;mctx.beginPath();
   mctx.moveTo(c0.x*sx,c0.y*sy);mctx.lineTo(c1.x*sx,c1.y*sy);mctx.lineTo(c2.x*sx,c2.y*sy);mctx.lineTo(c3.x*sx,c3.y*sy);mctx.closePath();mctx.stroke();}
+/* barres flottantes : actions en cours (construction, formation, âge) + points de vie */
+function drawWorldBars(){if(!G)return;ovlctx.save();ovlctx.font='10px system-ui,sans-serif';ovlctx.textAlign='center';ovlctx.textBaseline='bottom';
+  for(const b of G.buildings){const own=b.owner===ME;if(!own&&!visibleAt(b.x,b.y))continue;
+    const p=w2s3(b.x,bldTopY(b.type),b.y);if(p.behind||p.x<-60||p.x>innerWidth+60)continue;
+    if(!b.done){ovlBar(p.x,p.y,48,b.progress,'#e0a63c');ovlctx.fillStyle='#fff';ovlctx.fillText('Construction '+Math.round(b.progress*100)+'%',p.x,p.y-2);}
+    else if(own){const q=b.queue?b.queue.length:(b.queueLen||0);const cur=b.queue?b.queue[0]:b.curType;
+      if(cur){const total=TRAIN_TIME[cur]||10;const remain=(b.trainT!=null?b.trainT:total);const frac=clamp(1-remain/total,0,1);
+        ovlBar(p.x,p.y,48,frac,'#57b06a');ovlctx.fillStyle='#fff';ovlctx.fillText((UNIT[cur].ico||'')+' '+Math.round(frac*100)+'%'+(q>1?'  ×'+q:''),p.x,p.y-2);}}
+    if(b.hp<b.maxhp){const py=(!b.done||!own||!(b.queue?b.queue.length:b.queueLen))?p.y:p.y+8;ovlBar(p.x,py+(!b.done?9:0),52,b.hp/b.maxhp,hpCol(b.hp/b.maxhp));}}
+  for(const u of G.units){if(u.hp>=u.maxhp)continue;if(u.owner!==ME&&!visibleAt(u.x,u.y))continue;
+    const ip=interpUnitPos(u);const p=w2s3(ip.x,26,ip.y);if(p.behind||p.x<-30||p.x>innerWidth+30)continue;
+    ovlBar(p.x,p.y,22,u.hp/u.maxhp,hpCol(u.hp/u.maxhp));}
+  ovlctx.restore();}
 
 /* =========================================================================
    ENTRÉES (raycasting 3D)
@@ -985,12 +1005,17 @@ addEventListener('keydown',e=>{if(!gameStarted)return;const pan=60/(cam3.dist/82
 function updateHUD(){if(!G)return;const P=G.players[ME];if(!P)return;
   el('rFood').textContent=Math.floor(P.food);el('rWood').textContent=Math.floor(P.wood);el('rGold').textContent=Math.floor(P.gold);el('rStone').textContent=Math.floor(P.stone);
   const used=ROLE==='host'?popUsed(G,ME):countUnits(ME);el('rPop').textContent=used+'/'+P.popCap;
-  const adv=P.advancing>0?` (${Math.ceil(P.advancing)}s)`:'';el('ageBox').textContent='Âge '+AGE_NAMES[P.age-1]+adv;}
+  const adv=P.advancing>0?` (${Math.ceil(P.advancing)}s)`:'';el('ageTxt').textContent='Âge '+AGE_NAMES[P.age-1]+adv;
+  const af=el('ageFill');if(P.advancing>0){const tot=AGE_TIME[P.age]||1;af.style.width=(clamp(1-P.advancing/tot,0,1)*100)+'%';}else af.style.width='0%';}
 function countUnits(p){let n=0;if(!G)return 0;for(const u of G.units)if(u.owner===p)n++;return n;}
 function costStr(c){return Object.entries(c).map(([k,v])=>({food:'🍖',wood:'🪵',gold:'🪙',stone:'🪨'}[k]+v)).join(' ');}
 function refreshActions(){const box=el('actions'),info=el('selInfo');let acts=[];const P=G?G.players[ME]:null;
   if(selBuilding){const b=findBldLocal(selBuilding);
-    if(b){const t=BLD[b.type];info.innerHTML=`<div class="title">${t.ico} ${t.name}</div><div class="muted">PV ${Math.round(b.hp)}/${b.maxhp}${b.done?'':' • en construction'}</div>`;
+    if(b){const t=BLD[b.type];let act='';
+      if(!b.done)act=`<div class="muted">🔨 Construction ${Math.round(b.progress*100)}%</div>`;
+      else{const q=b.queue?b.queue.length:(b.queueLen||0);const cur=b.queue?b.queue[0]:b.curType;
+        if(cur){const total=TRAIN_TIME[cur]||10;const frac=clamp(1-((b.trainT!=null?b.trainT:total)/total),0,1);act=`<div class="muted">⏳ ${UNIT[cur].name} ${Math.round(frac*100)}%${q>1?' • file '+q:''}</div>`;}}
+      info.innerHTML=`<div class="title">${t.ico} ${t.name}</div><div class="muted">PV ${Math.round(b.hp)}/${b.maxhp}</div>${act}`;
       if(b.done){if(t.trains)for(const ut of t.trains){const u=UNIT[ut];const dis=P&&(P.age<u.age||!canAfford(G,ME,u.cost));acts.push({label:u.name,ico:u.ico,cost:costStr(u.cost),dis,on:()=>issue({k:'train',bId:b.id,utype:ut})});}
         if(b.type==='tc'){const na=P.age+1;const dis=P.advancing>0||na>4||!canAfford(G,ME,AGE_COST[na-1]||{});acts.push({label:na>4?'Âge max':'Âge '+AGE_NAMES[na-1],ico:'⭐',cost:na<=4?costStr(AGE_COST[na-1]):'',dis,on:()=>issue({k:'age'})});}
         if(t.upgrades)for(const uk in UPGRADES){const up=UPGRADES[uk];if(P.ups[uk])continue;if(up.req&&!P.ups[up.req])continue;const dis=P.age<up.age||!canAfford(G,ME,up.cost);acts.push({label:up.name,ico:up.ico,cost:costStr(up.cost),dis,on:()=>issue({k:'upgrade',up:uk})});}

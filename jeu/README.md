@@ -45,7 +45,12 @@ rendu moderne :
   **casques** et **boucliers** pour les soldats, animés (marche, attaque, repos) ;
   cavaliers montés, béliers à roues.
 - **Bâtiments en pierre** avec **créneaux**, tourelles à toits de tuiles, portes,
-  fenêtres éclairées, drapeaux d'équipe.
+  fenêtres éclairées. Chaque **type de bâtiment a sa couleur** (toit/créneaux) pour le
+  reconnaître d'un coup d'œil ; l'appartenance au joueur est marquée par une **bannière
+  et un drapeau** d'équipe.
+- **Sélection et ordres par raycasting 3D** : on cible directement les objets (unités,
+  ressources, bâtiments), y compris la cime des arbres — la récolte se donne au clic
+  sans rater la cible.
 - **Terrain** multi-textures avec relief, **eau animée** réfléchissante, **arbres à
   canopée arrondie**, et **végétation dense** (milliers d'herbes, rochers, fleurs).
 - Caméra RTS inclinée (pan, rotation, zoom), **brouillard de guerre 3D**, flèches en vol.

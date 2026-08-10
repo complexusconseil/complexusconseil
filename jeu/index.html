@@ -226,6 +226,9 @@ const BLD={
   tower:{name:'Tour', ico:'🗼', hp:1600, tw:2, th:2, vision:9, cost:{wood:60,stone:120}, pop:0, age:2, tower:{range:210, atk:13, cd:1.3}},
 };
 const BUILD_ORDER=['house','mill','lumber','mine','barracks','archery','stable','blacksmith','siege','tower','tc'];
+// couleur distinctive par type de bâtiment (toit / créneaux) pour les différencier
+const BLD_COLOR={tc:0xe6c34a, house:0xd2a96e, mill:0xead26a, lumber:0x6e8b3d, mine:0x9aa4ac,
+  barracks:0xc24a44, archery:0x3f9a5a, stable:0xa0703c, blacksmith:0x5a6472, siege:0x7a5aa0, tower:0x4a7aa8};
 const NODE={
   tree:{res:'wood', amount:150, r:11, ico:'🌲'},
   berry:{res:'food', amount:220, r:12, ico:'🍒'},
@@ -376,7 +379,7 @@ function stepAttack(s,u,t){const tg=targetPos(s,u.target);
 function nearestDropoff(s,u,res){let best=null,bd=1e18;for(const b of s.buildings){if(b.owner!==u.owner||!b.done)continue;const dp=BLD[b.type].dropoff;if(!dp||!dp.includes(res))continue;const q=d2(u.x,u.y,b.x,b.y);if(q<bd){bd=q;best=b;}}return best;}
 function nearestNode(s,x,y,res,range){let best=null,bd=range?range*range:1e18;for(const n of s.nodes){if(n.amount<=0)continue;if(res&&n.res!==res)continue;const q=d2(x,y,n.x,n.y);if(q<bd){bd=q;best=n;}}return best;}
 function stepGather(s,u,t){const n=findNode(s,u.gather);
-  if(!n||n.amount<=0){const nn=nearestNode(s,u.x,u.y,u.carryType,120);if(nn){u.gather=nn.id;u.path=null;}else{u.state=u.carry>0?'return':'idle';}return;}
+  if(!n||n.amount<=0){const nn=nearestNode(s,u.x,u.y,u.carryType,600);if(nn){u.gather=nn.id;u.path=null;}else{u.state=u.carry>0?'return':'idle';}return;}
   const dd=dist(u.x,u.y,n.x,n.y);
   if(dd>n.r+t.r+2){if(u.repathT<=0||!u.path){setPathTo(s,u,n.x,n.y);u.repathT=0.6;}followPath(s,u,t,()=>{u.path=null;});return;}
   u.path=null; u.carryType=n.res; const take=Math.min(t.gather*DT,n.amount,t.carry-u.carry);u.carry+=take;n.amount-=take;
@@ -384,7 +387,7 @@ function stepGather(s,u,t){const n=findNode(s,u.gather);
 function stepReturn(s,u,t){const b=nearestDropoff(s,u,u.carryType); if(!b){u.state='idle';return;}
   if(gapTo(u,b)>t.r+4){if(u.repathT<=0||!u.path){setPathTo(s,u,b.x,b.y);u.repathT=0.6;}followPath(s,u,t,()=>{u.path=null;});return;}
   u.path=null; if(u.carryType)s.players[u.owner][u.carryType]+=Math.round(u.carry); u.carry=0;
-  if(u.gather&&findNode(s,u.gather)){u.state='gather';}else{const nn=nearestNode(s,u.x,u.y,u.carryType,160);if(nn){u.gather=nn.id;u.state='gather';}else u.state='idle';}}
+  if(u.gather&&findNode(s,u.gather)){u.state='gather';}else{const nn=nearestNode(s,u.x,u.y,u.carryType,600);if(nn){u.gather=nn.id;u.state='gather';}else u.state='idle';}}
 function stepToBuild(s,u,t){const b=findBld(s,u.buildB); if(!b){u.state='idle';return;}
   if(gapTo(u,b)>t.r+4){if(u.repathT<=0||!u.path){setPathTo(s,u,b.x,b.y);u.repathT=0.6;}followPath(s,u,t,()=>{u.path=null;});return;}
   u.path=null; u.state='building';}
@@ -530,7 +533,7 @@ const mm=el('minimap'), mctx=mm.getContext('2d');
 let renderer,scene,camera,raycaster,sun,worldGroup,projGroup,fxGroup,ghostMesh,fogTex,fogImg,fogCanvas,fogCtx;
 let composer,ssaoPass,waterMat,waterMap,vegGroup;
 let QUALITY='high'; // optimisé PC : fidélité maximale
-const TEX={};
+const TEX={}, ROOFMAT={};
 let threeReady=false, DPR=1;
 let cam3={tx:WORLD_W*0.15,tz:WORLD_H/2,dist:540,yaw:0,pitch:0.92};
 const GEO={}, MAT={};
@@ -563,10 +566,10 @@ function initThree(){
   const cloth=col=>new THREE.MeshStandardMaterial({map:TEX.clothMap,normalMap:TEX.clothNormal,color:col,roughness:0.86,metalness:0.02});
   MAT.p1=cloth(0x3f8fd0); MAT.p2=cloth(0xe0663f);
   MAT.d1=cloth(0x274f74); MAT.d2=cloth(0x7d3a20);
-  MAT.b1=new THREE.MeshStandardMaterial({map:TEX.stoneMap,normalMap:TEX.stoneNormal,color:0x9aa0a8,roughness:0.95,metalness:0.02});
-  MAT.b2=MAT.b1;
-  MAT.roof1=new THREE.MeshStandardMaterial({map:TEX.roofMap,normalMap:TEX.roofNormal,color:0x3f8fd0,roughness:0.7});
-  MAT.roof2=new THREE.MeshStandardMaterial({map:TEX.roofMap,normalMap:TEX.roofNormal,color:0xe0663f,roughness:0.7});
+  // murs en pierre, légèrement teintés par l'équipe (identité) ; toits colorés par type
+  MAT.wallP1=new THREE.MeshStandardMaterial({map:TEX.stoneMap,normalMap:TEX.stoneNormal,color:0x99a6b0,roughness:0.95,metalness:0.02});
+  MAT.wallP2=new THREE.MeshStandardMaterial({map:TEX.stoneMap,normalMap:TEX.stoneNormal,color:0xb0a69a,roughness:0.95,metalness:0.02});
+  for(const k in BLD_COLOR) ROOFMAT[k]=new THREE.MeshStandardMaterial({map:TEX.roofMap,normalMap:TEX.roofNormal,color:BLD_COLOR[k],roughness:0.72});
   MAT.metal=new THREE.MeshStandardMaterial({map:TEX.metalMap,normalMap:TEX.metalNormal,roughness:0.34,metalness:0.9});
   MAT.wood=new THREE.MeshStandardMaterial({map:TEX.woodMap,normalMap:TEX.woodNormal,roughness:0.85});
   MAT.trunk=new THREE.MeshStandardMaterial({map:TEX.barkMap,normalMap:TEX.barkNormal,roughness:0.9});
@@ -786,19 +789,23 @@ function animateBody(ud,moving,attacking){const p=ud.parts,a=ud.anim;
 function cren(x,y,z,mat){const m=new THREE.Mesh(GEO.crenel,mat);m.position.set(x,y,z);m.castShadow=true;return m;}
 function makeBuildingMesh(type,owner){const t=BLD[type];const w=t.tw*TILE,d=t.th*TILE;const g=new THREE.Group();
   const hgt=type==='tc'?44:type==='tower'?60:(t.trains||t.upgrades||type==='siege')?34:26;
-  const wall=MAT.b1, roofMat=MAT[owner==='p1'?'roof1':'roof2'], team=MAT[owner];
+  const wall=MAT[owner==='p1'?'wallP1':'wallP2'], roofMat=ROOFMAT[type]||ROOFMAT.house, team=MAT[owner];
   const fort=(type==='tc'||type==='tower'||type==='barracks');
   const base=new THREE.Mesh(new THREE.BoxGeometry(w*0.84,hgt,d*0.84),wall);base.position.y=hgt/2;base.castShadow=true;base.receiveShadow=true;g.add(base);
   if(type==='house'||type==='tc'){const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.6,hgt*0.6,4),roofMat);roof.rotation.y=Math.PI/4;roof.position.y=hgt+hgt*0.3;roof.castShadow=true;g.add(roof);}
   else if(!fort){const roof=new THREE.Mesh(new THREE.BoxGeometry(w*0.9,5,d*0.9),roofMat);roof.position.y=hgt+2.5;roof.castShadow=true;g.add(roof);}
-  if(fort){const hw=w*0.42,hd=d*0.42;for(let s=-hw;s<=hw+0.1;s+=8){g.add(cren(s,hgt+2,hd,wall));g.add(cren(s,hgt+2,-hd,wall));}for(let s=-hd+8;s<hd-0.1;s+=8){g.add(cren(hw,hgt+2,s,wall));g.add(cren(-hw,hgt+2,s,wall));}}
+  else{ // bandeau de couleur (type) sous les créneaux, pour différencier les forts
+    const band=new THREE.Mesh(new THREE.BoxGeometry(w*0.86,5,d*0.86),roofMat);band.position.y=hgt+0.5;g.add(band);}
+  if(fort){const hw=w*0.42,hd=d*0.42;for(let s=-hw;s<=hw+0.1;s+=8){g.add(cren(s,hgt+4,hd,roofMat));g.add(cren(s,hgt+4,-hd,roofMat));}for(let s=-hd+8;s<hd-0.1;s+=8){g.add(cren(hw,hgt+4,s,roofMat));g.add(cren(-hw,hgt+4,s,roofMat));}}
   const door=new THREE.Mesh(GEO.door,MAT.dark);door.position.set(0,5,d*0.421);g.add(door);
   for(const dx of[-w*0.28,w*0.28]){const win=new THREE.Mesh(GEO.win,MAT.window);win.position.set(dx,hgt*0.62,d*0.421);g.add(win);}
   if(type==='tc'||type==='tower'){for(const sx of[-1,1])for(const sz of[-1,1]){
     const tur=new THREE.Mesh(new THREE.CylinderGeometry(5,6,hgt*1.1,12),wall);tur.position.set(sx*w*0.42,hgt*0.55,sz*d*0.42);tur.castShadow=true;g.add(tur);
     const cap=new THREE.Mesh(new THREE.ConeGeometry(6.8,13,12),roofMat);cap.position.set(sx*w*0.42,hgt*1.1+6.5,sz*d*0.42);cap.castShadow=true;g.add(cap);}}
+  // bannière d'équipe (identité du joueur) sur la façade
+  const banner=new THREE.Mesh(new THREE.BoxGeometry(4,hgt*0.55,0.8),team);banner.position.set(w*0.18,hgt*0.5,d*0.44);g.add(banner);
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(1,1,16,6),MAT.metal);pole.position.set(w*0.3,hgt+14,-d*0.3);g.add(pole);
-  const flag=new THREE.Mesh(new THREE.BoxGeometry(8,5,0.6),team);flag.position.set(w*0.3+4,hgt+18,-d*0.3);g.add(flag);
+  const flag=new THREE.Mesh(new THREE.BoxGeometry(9,6,0.6),team);flag.position.set(w*0.3+4.5,hgt+18,-d*0.3);g.add(flag);
   const wire=new THREE.Mesh(new THREE.BoxGeometry(w,hgt+14,d),new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true}));wire.position.y=(hgt+14)/2;wire.visible=false;g.add(wire);
   g.userData={wire,type,owner}; return g;}
 function makeNodeMesh(type){const g=new THREE.Group();
@@ -818,6 +825,15 @@ function clampCam(){cam3.tx=clamp(cam3.tx,0,WORLD_W);cam3.tz=clamp(cam3.tz,0,WOR
 function s2w(sx,sy){if(!camera)return{x:cam3.tx,y:cam3.tz};_ndc.set((sx/innerWidth)*2-1,-(sy/innerHeight)*2+1);raycaster.setFromCamera(_ndc,camera);
   const o=raycaster.ray.origin,d=raycaster.ray.direction;if(Math.abs(d.y)<1e-6)return{x:cam3.tx,y:cam3.tz};const t=-o.y/d.y;return{x:o.x+d.x*t,y:o.z+d.z*t};}
 function w2s(wx,wy){_v3.set(wx,0,wy).project(camera);return{x:(_v3.x*0.5+0.5)*innerWidth,y:(-_v3.y*0.5+0.5)*innerHeight,behind:_v3.z>1};}
+const _rc=new THREE.Raycaster();
+/* sélection 3D : raycast sur les objets réels (unités, bâtiments, ressources)
+   au lieu du sol — corrige le ciblage des ressources hautes (arbres, or). */
+function pick3D(sx,sy){if(!camera||!worldGroup)return null;
+  _ndc.set((sx/innerWidth)*2-1,-(sy/innerHeight)*2+1);_rc.setFromCamera(_ndc,camera);
+  const hits=_rc.intersectObjects(worldGroup.children,true);
+  for(const h of hits){let o=h.object;
+    while(o&&o!==worldGroup){if(o.userData&&o.userData.kind){if(o.visible!==false)return{kind:o.userData.kind,id:o.userData.pickId};break;}o=o.parent;}}
+  return null;}
 
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);
   if(renderer){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
@@ -844,7 +860,7 @@ function updateFogTexture(){const d=fogImg.data;
 function syncScene(dt){
   const curU=new Set();
   for(const u of G.units){curU.add(u.id);const ip=interpUnitPos(u);const vis=u.owner===ME||visibleAt(ip.x,ip.y);
-    let m=unitMeshes[u.id];if(!m){m=makeUnitMesh(u.type,u.owner);worldGroup.add(m);unitMeshes[u.id]=m;}
+    let m=unitMeshes[u.id];if(!m){m=makeUnitMesh(u.type,u.owner);m.userData.kind='unit';m.userData.pickId=u.id;worldGroup.add(m);unitMeshes[u.id]=m;}
     m.visible=vis;if(!vis)continue;const ud=m.userData;
     const moving=(u.vx*u.vx+u.vy*u.vy)>0.4,attacking=u.state==='attack';
     ud.anim+=dt*(moving?9:attacking?12:2);
@@ -853,12 +869,12 @@ function syncScene(dt){
   for(const id in unitMeshes){if(!curU.has(+id)){worldGroup.remove(unitMeshes[id]);delete unitMeshes[id];}}
   const curB=new Set();
   for(const b of G.buildings){curB.add(b.id);const vis=b.owner===ME||visibleAt(b.x,b.y);
-    let m=bldMeshes[b.id];if(!m){m=makeBuildingMesh(b.type,b.owner);m.position.set(b.x,0,b.y);worldGroup.add(m);bldMeshes[b.id]=m;}
+    let m=bldMeshes[b.id];if(!m){m=makeBuildingMesh(b.type,b.owner);m.userData.kind='building';m.userData.pickId=b.id;m.position.set(b.x,0,b.y);worldGroup.add(m);bldMeshes[b.id]=m;}
     m.visible=vis;if(!vis)continue;m.scale.y=b.done?1:Math.max(0.12,b.progress);m.userData.wire.visible=(selBuilding===b.id);}
   for(const id in bldMeshes){if(!curB.has(+id)){worldGroup.remove(bldMeshes[id]);delete bldMeshes[id];}}
   const curN=new Set();
   for(const n of G.nodes){curN.add(n.id);const vis=visibleAt(n.x,n.y);
-    let m=nodeMeshes[n.id];if(!m){m=makeNodeMesh(n.type);m.position.set(n.x,0,n.y);m.rotation.y=(n.id*1.7)%6.283;worldGroup.add(m);nodeMeshes[n.id]=m;}
+    let m=nodeMeshes[n.id];if(!m){m=makeNodeMesh(n.type);m.userData.kind='node';m.userData.pickId=n.id;m.position.set(n.x,0,n.y);m.rotation.y=(n.id*1.7)%6.283;worldGroup.add(m);nodeMeshes[n.id]=m;}
     m.visible=vis;const f=n.amount/n.max;m.scale.setScalar(0.6+0.4*f);}
   for(const id in nodeMeshes){if(!curN.has(+id)){worldGroup.remove(nodeMeshes[id]);delete nodeMeshes[id];}}
   // projectiles
@@ -916,12 +932,12 @@ cv.addEventListener('pointerup',e=>{const wasPinch=pinch&&pointers.size>=2;point
   const di=downInfo;downInfo=null;const ds=dragSel;dragSel=null;if(!di)return;const wp=s2w(e.clientX,e.clientY);const moved=di.moved;
   if(armed&&(di.button===0||di.ptype!=='mouse')){if(!moved){if(armed.type==='build')tryBuildAt(wp);else if(armed.type==='rally'){if(selBuilding)issue({k:'rally',bId:selBuilding,x:wp.x,y:wp.y});armed=null;refreshActions();toast('Ralliement défini');}}return;}
   if(di.ptype==='mouse'){
-    if(di.button===0){if(ds&&Math.abs(ds.x1-ds.x0)+Math.abs(ds.y1-ds.y0)>10){boxSelect(ds);return;}selectAt(wp,e);return;}
-    if(di.button===2){if(!moved)commandAt(wp);return;} return;}
+    if(di.button===0){if(ds&&Math.abs(ds.x1-ds.x0)+Math.abs(ds.y1-ds.y0)>10){boxSelect(ds);return;}selectAt(e.clientX,e.clientY,e);return;}
+    if(di.button===2){if(!moved)commandAt(e.clientX,e.clientY);return;} return;}
   // tactile
   if(moved)return;const now=performance.now();
-  if(now-lastTapT<300&&lastTapPos&&dist(lastTapPos.x,lastTapPos.y,e.clientX,e.clientY)<30){lastTapT=0;doubleTap(wp);return;}
-  lastTapT=now;lastTapPos={x:e.clientX,y:e.clientY};tapAt(wp,e);});
+  if(now-lastTapT<300&&lastTapPos&&dist(lastTapPos.x,lastTapPos.y,e.clientX,e.clientY)<30){lastTapT=0;doubleTap(e.clientX,e.clientY);return;}
+  lastTapT=now;lastTapPos={x:e.clientX,y:e.clientY};tapAt(e.clientX,e.clientY,e);});
 cv.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);pinch=null;downInfo=null;dragSel=null;});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('wheel',e=>{e.preventDefault();cam3.dist=clamp(cam3.dist*(e.deltaY<0?0.9:1.11),260,1700);},{passive:false});
@@ -930,18 +946,21 @@ function panGrab(px,py,cx,cy){const a=s2w(px,py),b=s2w(cx,cy);cam3.tx-=(b.x-a.x)
 function pickUnit(wp){let best=null,bd=1e18;if(!G)return null;for(const u of G.units){const ip=interpUnitPos(u);if(u.owner!==ME&&!visibleAt(ip.x,ip.y))continue;const r=UNIT[u.type].r+8,q=d2(wp.x,wp.y,ip.x,ip.y);if(q<r*r&&q<bd){bd=q;best=u;}}return best;}
 function pickBuilding(wp){if(!G)return null;for(const b of G.buildings){if(b.owner!==ME&&!visibleAt(b.x,b.y))continue;const t=BLD[b.type];const hw=t.tw*TILE/2,hh=t.th*TILE/2;if(wp.x>b.x-hw&&wp.x<b.x+hw&&wp.y>b.y-hh&&wp.y<b.y+hh)return b;}return null;}
 function pickNode(wp){let best=null,bd=1e18;if(!G)return null;for(const n of G.nodes){if(!visibleAt(n.x,n.y))continue;const r=n.r+10,q=d2(wp.x,wp.y,n.x,n.y);if(q<r*r&&q<bd){bd=q;best=n;}}return best;}
-function selectAt(wp,e){const add=e&&e.shiftKey;const u=pickUnit(wp);
-  if(u){if(u.owner===ME){if(!add)selection.clear();selection.add(u.id);selBuilding=null;}else if(!add)selection.clear();refreshActions();return;}
-  const b=pickBuilding(wp);if(b&&b.owner===ME){selection.clear();selBuilding=b.id;refreshActions();return;}
+function selectAt(sx,sy,e){const add=e&&e.shiftKey;const p=pick3D(sx,sy);
+  if(p&&p.kind==='unit'){const u=findUnitLocal(p.id);if(u&&u.owner===ME){if(!add)selection.clear();selection.add(u.id);selBuilding=null;refreshActions();return;}if(u){if(!add)selection.clear();selBuilding=null;refreshActions();return;}}
+  if(p&&p.kind==='building'){const b=findBldLocal(p.id);if(b&&b.owner===ME){selection.clear();selBuilding=b.id;refreshActions();return;}}
   selection.clear();selBuilding=null;refreshActions();}
-function commandAt(wp){if(selection.size===0)return;const ids=[...selection];
-  const eu=pickUnit(wp);if(eu&&eu.owner!==ME){issue({k:'attack',ids,targetId:eu.id});ping(wp,true);return;}
-  const eb=pickBuilding(wp);if(eb&&eb.owner!==ME){issue({k:'attack',ids,targetId:eb.id});ping(wp,true);return;}
-  const n=pickNode(wp);if(n){issue({k:'gather',ids,nodeId:n.id});ping(wp,false);return;}
+function commandAt(sx,sy){if(selection.size===0)return;const ids=[...selection];const wp=s2w(sx,sy);const p=pick3D(sx,sy);
+  if(p){if(p.kind==='unit'){const u=findUnitLocal(p.id);if(u&&u.owner!==ME){issue({k:'attack',ids,targetId:u.id});ping({x:u.x,y:u.y},true);return;}}
+    else if(p.kind==='building'){const b=findBldLocal(p.id);if(b&&b.owner!==ME){issue({k:'attack',ids,targetId:b.id});ping({x:b.x,y:b.y},true);return;}}
+    else if(p.kind==='node'){const n=G.nodes.find(x=>x.id===p.id);issue({k:'gather',ids,nodeId:p.id});ping(n||wp,false);return;}}
+  const n=pickNode(wp);if(n){issue({k:'gather',ids,nodeId:n.id});ping(n,false);return;} // repli sol
   issue({k:'move',ids,x:wp.x,y:wp.y});ping(wp,false);}
-function tapAt(wp,e){if(selection.size>0){const mu=pickUnit(wp),mb=pickBuilding(wp);if((mu&&mu.owner===ME)||(mb&&mb.owner===ME))selectAt(wp,e);else commandAt(wp);}else selectAt(wp,e);}
-function doubleTap(wp){const u=pickUnit(wp);if(!u||u.owner!==ME)return;selection.clear();
-  for(const x of G.units){if(x.owner===ME&&x.type===u.type){const p=w2s(x.x,x.y);if(!p.behind&&p.x>-20&&p.x<innerWidth+20&&p.y>-20&&p.y<innerHeight+20)selection.add(x.id);}}selBuilding=null;refreshActions();}
+function tapAt(sx,sy,e){if(selection.size>0){const p=pick3D(sx,sy);
+    const mine=p&&((p.kind==='unit'&&(findUnitLocal(p.id)||{}).owner===ME)||(p.kind==='building'&&(findBldLocal(p.id)||{}).owner===ME));
+    if(mine)selectAt(sx,sy,e);else commandAt(sx,sy);}else selectAt(sx,sy,e);}
+function doubleTap(sx,sy){const p=pick3D(sx,sy);if(!p||p.kind!=='unit')return;const u=findUnitLocal(p.id);if(!u||u.owner!==ME)return;selection.clear();
+  for(const x of G.units){if(x.owner===ME&&x.type===u.type){const s=w2s(x.x,x.y);if(!s.behind&&s.x>-30&&s.x<innerWidth+30&&s.y>-30&&s.y<innerHeight+30)selection.add(x.id);}}selBuilding=null;refreshActions();}
 function boxSelect(ds){const x0=Math.min(ds.x0,ds.x1),x1=Math.max(ds.x0,ds.x1),y0=Math.min(ds.y0,ds.y1),y1=Math.max(ds.y0,ds.y1);
   selection.clear();selBuilding=null;for(const u of G.units){if(u.owner!==ME)continue;const p=w2s(u.x,u.y);if(!p.behind&&p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1)selection.add(u.id);}
   const mil=[...selection].filter(id=>{const u=findUnitLocal(id);return u&&u.type!=='villager';});if(mil.length)selection=new Set(mil);refreshActions();}

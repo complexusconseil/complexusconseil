@@ -16,9 +16,9 @@ const UI = {
   badge(id, size = 42) {
     const t = teamById(id);
     const style = `background:radial-gradient(circle at 30% 25%, ${t.c2}22, ${t.c1});border-color:${t.c2};width:${size}px;height:${size}px;font-size:${size*0.34}px`;
-    // Si un vrai logo a été déposé dans assets/logos/<ID>.png, on l'affiche ; sinon écusson aux couleurs.
-    const img = (typeof LOGO_AVAIL !== 'undefined' && LOGO_AVAIL[id])
-      ? `<img class="logo-img" src="assets/logos/${id}.png" alt="${id}">` : '';
+    // Si un vrai logo a été déposé dans assets/logos/<ID>.(png|svg), on l'affiche ; sinon écusson aux couleurs.
+    const url = (typeof LOGO_AVAIL !== 'undefined') ? LOGO_AVAIL[id] : null;
+    const img = url ? `<img class="logo-img" src="${url}" alt="${id}">` : '';
     return `<span class="badge" style="${style}">${img}<span class="mono">${id}</span></span>`;
   },
 
@@ -123,7 +123,7 @@ const UI = {
     const sal = teamSalary(ut);
     return `
       <header class="topbar" style="background:linear-gradient(90deg, ${t.c1}, var(--bg2) 70%)">
-        <span class="badge" style="background:radial-gradient(circle at 30% 25%, ${t.c2}22, ${t.c1});border-color:${t.c2}">${(typeof LOGO_AVAIL!=='undefined'&&LOGO_AVAIL[t.id])?`<img class="logo-img" src="assets/logos/${t.id}.png" alt="${t.id}">`:''}<span class="mono">${t.id}</span></span>
+        <span class="badge" style="background:radial-gradient(circle at 30% 25%, ${t.c2}22, ${t.c1});border-color:${t.c2}">${(typeof LOGO_AVAIL!=='undefined'&&LOGO_AVAIL[t.id])?`<img class="logo-img" src="${LOGO_AVAIL[t.id]}" alt="${t.id}">`:''}<span class="mono">${t.id}</span></span>
         <div class="tinfo">
           <b>${t.city} ${t.name}</b>
           <small>${s.managerName} · ${CONFS[t.conf]} · ${t.div}</small>
@@ -141,11 +141,13 @@ const UI = {
 
   tabsBar() {
     const s = Game.state;
-    const tabs = [['dash', '🏠 Accueil'], ['roster', '👥 Effectif'], ['lineup', '📋 Cinq & Rotations']];
+    const tabs = [['dash', '🏠 Accueil'], ['roster', '👥 Effectif'], ['lineup', '📋 Cinq & Rotations'],
+                  ['tactics', '🎯 Tactiques']];
     if (s.phase === 'regular') tabs.push(['play', '🏀 Match'], ['schedule', '🗓️ Calendrier']);
     if (s.phase === 'playoffs') tabs.push(['playoffs', '🏆 Playoffs']);
     if (s.phase === 'offseason') tabs.push(['offseason', '🌴 Intersaison']);
-    tabs.push(['trades', '🔁 Transferts'], ['standings', '📊 Classements'], ['league', '🌐 Ligue'], ['news', '📰 Actus']);
+    tabs.push(['trades', '🔁 Transferts'], ['scouting', '🔭 Scouting'],
+              ['standings', '📊 Classements'], ['league', '🌐 Ligue'], ['news', '📰 Actus']);
     // onglet actif par défaut cohérent avec la phase
     if (s.phase === 'playoffs' && this.tab === 'play') this.tab = 'playoffs';
     if (s.phase === 'offseason' && (this.tab === 'play' || this.tab === 'schedule' || this.tab==='playoffs')) this.tab = 'offseason';
@@ -168,6 +170,7 @@ const UI = {
     const m = this.el('main');
     const map = {
       dash: () => this.dashView(), roster: () => this.rosterView(), lineup: () => this.lineupView(),
+      tactics: () => this.tacticsView(), scouting: () => this.scoutingView(),
       play: () => this.playView(), schedule: () => this.scheduleView(), standings: () => this.standingsView(),
       league: () => this.leagueView(), news: () => this.newsView(), trades: () => this.tradesView(),
       playoffs: () => this.playoffsView(), offseason: () => this.offseasonView(),
@@ -297,8 +300,95 @@ const UI = {
     </div>`;
   },
 
+  /* ------------------------------ Tactiques ----------------------------- */
+  tacticsView(embedLive) {
+    const ut = Game.ut();
+    const offCards = Object.entries(OFF_SCHEMES).map(([k, v]) =>
+      `<label class="scheme ${ut.offScheme === k ? 'sel' : ''}">
+        <input type="radio" name="off" value="${k}" ${ut.offScheme === k ? 'checked' : ''} data-off="${k}" style="display:none">
+        <b>${v.name}</b><span class="muted">${v.desc}</span></label>`).join('');
+    const defCards = Object.entries(DEF_SCHEMES).map(([k, v]) =>
+      `<label class="scheme ${ut.defScheme === k ? 'sel' : ''}">
+        <input type="radio" name="def" value="${k}" ${ut.defScheme === k ? 'checked' : ''} data-def="${k}" style="display:none">
+        <b>${v.name}</b><span class="muted">${v.desc}</span></label>`).join('');
+
+    // Hiérarchie offensive
+    const prio = (ut.priorities || []).map(id => playerById(ut, id)).filter(Boolean);
+    const inPrio = new Set(prio.map(p => p.id));
+    const rest = [...ut.roster].filter(p => !inPrio.has(p.id)).sort((a, b) => b.ovr - a.ovr);
+    const prioRows = prio.map((p, i) => `<div class="kv">
+      <span><b style="color:var(--accent)">${i + 1}.</b> ${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}
+        <small class="muted">${i === 0 ? 'Option n°1' : i === 1 ? '2e option' : i === 2 ? '3e option' : 'rôle'}</small></span>
+      <span class="row" style="gap:4px">
+        <button class="btn ghost sm" data-prio-up="${p.id}" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button class="btn ghost sm" data-prio-down="${p.id}" ${i === prio.length - 1 ? 'disabled' : ''}>▼</button>
+        <button class="btn red sm" data-prio-rm="${p.id}">✕</button></span></div>`).join('')
+      || '<div class="muted">Aucune priorité définie.</div>';
+    const addOpts = rest.map(p => `<option value="${p.id}">${p.name} (${p.pos} · ${p.ovr})</option>`).join('');
+
+    return `${embedLive ? '' : ''}
+      <div class="grid cols2">
+        <div class="card"><h2>🏀 Système offensif</h2>
+          <div class="scheme-grid">${offCards}</div>
+        </div>
+        <div class="card"><h2>🛡️ Système défensif</h2>
+          <div class="scheme-grid">${defCards}</div>
+        </div>
+      </div>
+      <div class="card"><h2>🎯 Options prioritaires en attaque</h2>
+        <p class="muted" style="margin-bottom:8px">L'ordre définit qui prend le plus de tirs (option n°1, n°2…). Le schéma « Iso — stars » amplifie encore les 2 premières options.</p>
+        ${prioRows}
+        <div class="row" style="margin-top:12px">
+          <select id="prio-add"><option value="">+ Ajouter un joueur…</option>${addOpts}</select>
+          <button class="btn ghost sm" data-act="prio-add">Ajouter</button>
+          <button class="btn ghost sm" data-act="prio-reset">⚙️ Hiérarchie auto</button>
+        </div>
+      </div>`;
+  },
+
+  /* ------------------------------- Scouting ----------------------------- */
+  scoutingView() {
+    const s = Game.state;
+    const years = Game.scoutingClasses();
+    if (!years.length) return `<div class="card center"><h2>Scouting indisponible</h2></div>`;
+    const y = years.includes(this._scoutYear) ? this._scoutYear : years[0];
+    this._scoutYear = y;
+    const cls = s.scouting.classes[y];
+    const tabs = years.map(yy => `<button class="btn ${yy === y ? 'primary' : 'ghost'} sm" data-scout-year="${yy}">Draft ${yy}</button>`).join(' ');
+    const rows = cls.slice(0, 40).map(p => {
+      const d = prospectDisplay(p);
+      const stars = '★'.repeat(p.scout || 0) + '☆'.repeat(3 - (p.scout || 0));
+      return `<tr>
+        <td>${p.projRank}</td>
+        <td class="name">${this.posTag(p.pos)} ${p.name}${p.real ? ' <small class="muted">(réel)</small>' : ''}</td>
+        <td>${p.age}</td>
+        <td class="muted">${d.tier}</td>
+        <td>${d.exact ? this.ovrTag(p.ovr) : d.ovr}</td>
+        <td class="muted">${d.pot}</td>
+        <td title="Niveau de scouting">${stars}</td>
+        <td><button class="btn ghost sm" data-scout="${p.id}" ${((p.scout || 0) >= 3 || s.scouting.points <= 0) ? 'disabled' : ''}>Scouter</button></td>
+      </tr>`;
+    }).join('');
+    return `<div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2>🔭 Scouting de la draft</h2>
+          <span class="chip">Points de scouting : <b>${s.scouting.points}</b></span>
+        </div>
+        <div class="row" style="margin:8px 0">${tabs}</div>
+        <p class="muted" style="font-size:12.5px;margin-bottom:8px">Scoutez pour affiner l'évaluation (fourchette de note → note exacte à 3★). Points limités par saison. Les cuvées futures sont des <b>projections</b> (sauf têtes d'affiche réelles). La cuvée de l'an prochain sera votre draft.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Proj.</th><th class="name">Prospect</th><th>Âge</th><th>Profil</th><th>OVR est.</th><th>Pot.</th><th>Scout</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
+      </div>`;
+  },
+
   /* -------------------------------- Match ------------------------------- */
   playView() {
+    if (Game.state.liveGame) return this.liveGameView();
+    return this.pregameView();
+  },
+
+  pregameView() {
     const s = Game.state; const next = Game.nextUserGame();
     if (!next) return `<div class="card center"><h2>Saison régulière terminée</h2>
       <p class="muted">Direction les playoffs !</p>
@@ -316,12 +406,57 @@ const UI = {
           <small class="muted">${(home?ut:ot).w}-${(home?ut:ot).l}</small></div>
       </div>
       <p class="center muted">${home?'À domicile':'À l\'extérieur'} · Note ${teamOverall(ut)} vs ${teamOverall(ot)}</p>
+      <p class="center muted" style="font-size:12.5px">Tactiques : ⚔️ ${OFF_SCHEMES[ut.offScheme].name} · 🛡️ ${DEF_SCHEMES[ut.defScheme].name} <small>(modifiables dans l'onglet Tactiques ou en direct)</small></p>
       <div class="row" style="justify-content:center;margin-top:8px">
-        <button class="btn primary" data-act="playgame">🏀 Jouer le match</button>
+        <button class="btn primary" data-act="startlive">🏀 Jouer (quart par quart)</button>
         <button class="btn ghost" data-act="simgame">⏩ Simuler rapidement</button>
       </div>
     </div>
     <div class="card"><h2>Résultats récents</h2>${this.recentResults()}</div>`;
+  },
+
+  // Vue du match en cours : score, changement de schéma en direct, quart par quart
+  liveGameView() {
+    const s = Game.state; const lg = s.liveGame; const ut = Game.ut();
+    const homeId = lg.gameRef.home, awayId = lg.gameRef.away;
+    const meHome = homeId === s.userTeam;
+    const myId = s.userTeam, oppId = meHome ? awayId : homeId;
+    const myScore = meHome ? lg.home.score : lg.away.score;
+    const oppScore = meHome ? lg.away.score : lg.home.score;
+    const qLabel = lg.done ? 'Terminé' : (lg.q >= 4 ? 'Prolongation' : `${lg.q}ᵉ quart-temps joué`);
+    const qRows = lg.quarters.map(q => {
+      const mine = meHome ? q.hs : q.as, opp = meHome ? q.as : q.hs;
+      return `<tr><td>Q${q.q}</td><td>${mine}</td><td>${opp}</td></tr>`;
+    }).join('');
+    const schemeSel = (obj, cur, attr, label) => `<div style="flex:1;min-width:180px">
+      <div class="muted" style="font-size:12px;margin-bottom:4px">${label}</div>
+      <select data-${attr}-live style="width:100%">${Object.entries(obj).map(([k, v]) =>
+        `<option value="${k}" ${cur === k ? 'selected' : ''}>${v.name}</option>`).join('')}</select></div>`;
+
+    const boxMini = lg.done ? '' : `<div class="card"><h3>Ajustements en direct</h3>
+      <div class="row">${schemeSel(OFF_SCHEMES, ut.offScheme, 'off', '⚔️ Attaque')}${schemeSel(DEF_SCHEMES, ut.defScheme, 'def', '🛡️ Défense')}</div>
+      <p class="muted" style="font-size:12px;margin-top:6px">Changez de système avant de lancer le quart-temps suivant.</p></div>`;
+
+    return `<div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Match en direct</h2><span class="chip">${qLabel}${lg.ot?` · ${lg.ot} prol.`:''}</span></div>
+        <div class="scoreboard">
+          <div class="tm">${this.badge(myId,54)}<div><b>${teamById(myId).name}</b></div><div class="sc ${myScore>=oppScore?'win':''}">${myScore}</div></div>
+          <div style="font-weight:800;color:var(--muted)">—</div>
+          <div class="tm">${this.badge(oppId,54)}<div><b>${teamById(oppId).name}</b></div><div class="sc ${oppScore>myScore?'win':''}">${oppScore}</div></div>
+        </div>
+        <div class="row" style="justify-content:center;margin-top:6px">
+          ${lg.done
+            ? `<button class="btn primary" data-act="finish-live">📋 Feuille de match & résultat</button>`
+            : `<button class="btn primary" data-act="sim-quarter">▶ Jouer le quart-temps suivant</button>
+               <button class="btn ghost" data-act="finish-live">⏩ Terminer le match</button>`}
+        </div>
+      </div>
+      ${boxMini}
+      ${lg.quarters.length ? `<div class="card"><h3>Score par quart-temps</h3>
+        <div class="table-wrap"><table><thead><tr><th></th><th>${teamById(myId).id}</th><th>${teamById(oppId).id}</th></tr></thead><tbody>${
+          lg.quarters.map(q => { const mine = meHome ? q.hs : q.as, opp = meHome ? q.as : q.hs;
+            return `<tr><td>Q${q.q}</td><td><b>${mine}</b></td><td>${opp}</td></tr>`; }).join('')
+        }</tbody></table></div></div>` : ''}`;
   },
 
   recentResults() {
@@ -417,54 +552,69 @@ const UI = {
   },
 
   /* ------------------------------- Transferts --------------------------- */
+  pickLabel(pk) { return `Pick ${pk.year} T${pk.round}${pk.from !== undefined ? ' (' + pk.from + ')' : ''}`; },
+
   tradesView() {
     const s = Game.state; const ut = Game.ut();
     if (s.phase === 'playoffs') return `<div class="card center"><h2>Marché fermé</h2><p class="muted">Les transferts sont indisponibles pendant les playoffs.</p></div>`;
-    const partner = this.tradePartner || TEAMS.find(t=>t.id!==s.userTeam).id;
+    const partner = (this.tradePartner && this.tradePartner !== s.userTeam) ? this.tradePartner : TEAMS.find(t => t.id !== s.userTeam).id;
     this.tradePartner = partner;
     const ot = s.teams[partner];
-    const opts = TEAMS.filter(t=>t.id!==s.userTeam).map(t=>`<option value="${t.id}" ${t.id===partner?'selected':''}>${t.city} ${t.name}</option>`).join('');
-    const col = (team, side) => `<div class="table-wrap"><table><thead><tr><th></th><th class="name">Joueur</th><th>OVR</th><th>Âge</th><th>Salaire</th></tr></thead><tbody>${
-      [...team.roster].sort((a,b)=>b.ovr-a.ovr).map(p=>`<tr>
-        <td><input type="checkbox" data-side="${side}" value="${p.id}"></td>
+    const opts = TEAMS.filter(t => t.id !== s.userTeam).map(t => `<option value="${t.id}" ${t.id === partner ? 'selected' : ''}>${t.city} ${t.name} (note ${teamOverall(s.teams[t.id])})</option>`).join('');
+
+    const col = (team, side) => {
+      const players = [...team.roster].sort((a, b) => b.ovr - a.ovr).map(p => `<tr>
+        <td><input type="checkbox" class="trade-cb" data-side="${side}" data-kind="player" value="${p.id}"></td>
         <td class="name">${this.posTag(p.pos)} ${p.name}</td><td>${this.ovrTag(p.ovr)}</td>
-        <td>${p.age}</td><td>${p.salary} M$</td></tr>`).join('')
-    }</tbody></table></div>`;
+        <td>${p.age}</td><td>${p.salary} M$</td></tr>`).join('');
+      const picks = (team.picks || []).slice().sort((a, b) => a.year - b.year).map(pk => `<tr>
+        <td><input type="checkbox" class="trade-cb" data-side="${side}" data-kind="pick" data-year="${pk.year}" data-round="${pk.round}" data-from="${pk.from}"></td>
+        <td class="name" colspan="4">🎟️ ${this.pickLabel(pk)} <small class="muted">1er tour</small></td></tr>`).join('');
+      return `<div class="table-wrap"><table><thead><tr><th></th><th class="name">Actif</th><th>OVR</th><th>Âge</th><th>Salaire</th></tr></thead>
+        <tbody>${players}${picks}</tbody></table></div>`;
+    };
     return `<div class="card"><div class="row" style="justify-content:space-between">
         <h2>Bureau des transferts</h2>
         <div class="row"><span class="muted">Négocier avec :</span><select id="trade-partner">${opts}</select></div></div>
       <div class="grid cols2" style="margin-top:12px">
-        <div><h3>Vous donnez — ${teamById(s.userTeam).name}</h3>${col(ut,'give')}</div>
-        <div><h3>Vous recevez — ${teamById(partner).name}</h3>${col(ot,'get')}</div>
+        <div><h3>Vous cédez — ${teamById(s.userTeam).name} <small class="muted">(note ${teamOverall(ut)})</small></h3>${col(ut, 'give')}</div>
+        <div><h3>Vous recevez — ${teamById(partner).name} <small class="muted">(note ${teamOverall(ot)})</small></h3>${col(ot, 'get')}</div>
       </div>
-      <div id="trade-summary" class="row" style="justify-content:space-between;margin-top:8px"></div>
+      <div id="trade-summary" class="card" style="margin-top:8px"><span class="muted">Sélectionnez des actifs puis « Évaluer ».</span></div>
       <div class="row end" style="margin-top:6px">
-        <button class="btn ghost" data-act="trade-eval">Évaluer</button>
+        <button class="btn ghost" data-act="trade-eval">Évaluer l'offre</button>
         <button class="btn primary" data-act="trade-propose">Proposer l'échange</button>
       </div>
-      <p class="muted" style="font-size:12px;margin-top:8px">L'IA accepte si elle reçoit une valeur au moins équivalente (jeunesse et potentiel valorisés).</p>
+      <p class="muted" style="font-size:12px;margin-top:8px">Règles : équilibre salarial (l'entrant ≤ 125 % du sortant + 7,5 M$), effectifs entre 8 et 15 joueurs. L'IA valorise jeunesse, potentiel, besoins de poste et picks.</p>
     </div>`;
   },
 
   gatherTrade() {
-    const give = [...document.querySelectorAll('input[data-side=give]:checked')].map(x=>+x.value);
-    const get = [...document.querySelectorAll('input[data-side=get]:checked')].map(x=>+x.value);
-    return { give, get };
+    const parse = side => [...document.querySelectorAll(`input.trade-cb[data-side=${side}]:checked`)].map(x => {
+      if (x.dataset.kind === 'pick') return { kind: 'pick', year: +x.dataset.year, round: +x.dataset.round, from: x.dataset.from };
+      return { kind: 'player', id: +x.value };
+    });
+    return { userGives: parse('give'), userGets: parse('get') };
+  },
+
+  assetName(teamId, a) {
+    if (a.kind === 'pick') return `🎟️ ${this.pickLabel(a)}`;
+    const p = playerById(Game.state.teams[teamId], a.id);
+    return p ? `${p.name} (${p.pos} ${p.ovr})` : '—';
   },
 
   showPendingTrade() {
     const s = Game.state; const t = s.pendingTrade;
-    const from = s.teams[t.fromId];
-    const giveNames = t.give.map(id=>{const p=playerById(from,id);return p?`${p.name} (${p.pos} ${p.ovr})`:'';}).filter(Boolean).join(', ');
-    const getNames = t.get.map(id=>{const p=playerById(Game.ut(),id);return p?`${p.name} (${p.pos} ${p.ovr})`:'';}).filter(Boolean).join(', ');
+    const recv = t.userGets.map(a => this.assetName(t.partner, a)).join(', ') || '—';
+    const give = t.userGives.map(a => this.assetName(s.userTeam, a)).join(', ') || '—';
     this.modal(`<h2>📨 Proposition d'échange</h2>
-      <p><b>${teamById(t.fromId).city} ${teamById(t.fromId).name}</b> vous propose un transfert :</p>
+      <p><b>${teamById(t.partner).city} ${teamById(t.partner).name}</b> vous propose :</p>
       <div class="grid cols2" style="margin:12px 0">
-        <div class="card" style="margin:0"><h3>Vous recevez</h3><div>${giveNames||'—'}</div></div>
-        <div class="card" style="margin:0"><h3>Vous cédez</h3><div>${getNames||'—'}</div></div>
+        <div class="card" style="margin:0"><h3>Vous recevez</h3><div>${recv}</div></div>
+        <div class="card" style="margin:0"><h3>Vous cédez</h3><div>${give}</div></div>
       </div>
       <div class="row end"><button class="btn ghost" onclick="Game.declinePendingTrade();UI.closeModal();UI.toast('Offre refusée')">Refuser</button>
-        <button class="btn green" onclick="Game.acceptPendingTrade();UI.closeModal();UI.render();UI.toast('Transfert accepté')">Accepter</button></div>`);
+        <button class="btn green" onclick="Game.acceptPendingTrade();UI.closeModal();UI.render();UI.toast('Transfert accepté !')">Accepter</button></div>`);
   },
 
   /* -------------------------------- Playoffs ---------------------------- */
@@ -558,15 +708,19 @@ const UI = {
     if (!s.draftClass) return '';
     const order = draftOrder(s);
     const userPickPos = order.indexOf(s.userTeam) + 1;
-    const prospects = s.draftClass.slice(0, 30).map((p,i) => `<tr>
-      <td>${p.draftRank}</td>
-      <td class="name">${this.posTag(p.pos)} ${p.name}</td>
+    const left = s.userPicksLeft || 0;
+    const prospects = s.draftClass.slice(0, 30).map(p => {
+      const scouted = (p.scout || 0) >= 2;   // les prospects bien scoutés affichent des notes plus sûres
+      return `<tr>
+      <td>${p.projRank}</td>
+      <td class="name">${this.posTag(p.pos)} ${p.name}${p.real ? ' <small class="muted">(réel)</small>' : ''}</td>
       <td>${p.age}</td><td>${this.ovrTag(p.ovr)}</td><td class="muted">${p.potential}</td>
-      <td><button class="btn green sm" data-draft="${p.id}" ${ut.roster.length>=15?'disabled':''}>Drafter</button></td>
-    </tr>`).join('');
-    return `<div class="card"><h2>Draft ${s.season+1}</h2>
-      <p class="muted" style="margin-bottom:8px">Votre premier tour : <b>${userPickPos}${userPickPos===1?'er':'e'} choix</b> (ordre inversé au classement). Sélectionnez un ou plusieurs prospects, puis simulez le reste.</p>
-      <div class="table-wrap"><table><thead><tr><th>Rang</th><th class="name">Prospect</th><th>Âge</th><th>OVR</th><th>Pot</th><th></th></tr></thead><tbody>${prospects}</tbody></table></div>
+      <td><button class="btn ghost sm" data-player="${p.id}">Fiche</button>
+          <button class="btn green sm" data-draft="${p.id}" ${(left <= 0 || ut.roster.length >= 15) ? 'disabled' : ''}>Drafter</button></td>
+    </tr>`; }).join('');
+    return `<div class="card"><h2>Draft ${s.season + 1}</h2>
+      <p class="muted" style="margin-bottom:8px">Vos choix restants : <b>${left}</b> (1er tour, ${userPickPos}${userPickPos === 1 ? 'er' : 'e'} rang au classement inversé). Sélectionnez vos prospects, puis simulez le reste.</p>
+      <div class="table-wrap"><table><thead><tr><th>Proj.</th><th class="name">Prospect</th><th>Âge</th><th>OVR</th><th>Pot</th><th></th></tr></thead><tbody>${prospects}</tbody></table></div>
       <div class="row end" style="margin-top:12px">
         <button class="btn ghost" data-act="sim-draft">Simuler la fin de la draft (IA)</button>
         <button class="btn primary" data-act="to-fa">Passer aux agents libres →</button>
@@ -664,7 +818,8 @@ const UI = {
       Game.releasePlayer(+b.dataset.letGo);this.toast('Joueur libéré');this.render();}));
 
     // draft
-    m.querySelectorAll('[data-draft]').forEach(b=>b.addEventListener('click',()=>{Game.draftPlayer(+b.dataset.draft);this.render();}));
+    m.querySelectorAll('[data-draft]').forEach(b=>b.addEventListener('click',()=>{
+      const r=Game.draftPlayer(+b.dataset.draft); if(r&&r.err)this.toast(r.err); this.render();}));
 
     // free agency
     m.querySelectorAll('[data-sign]').forEach(b=>b.addEventListener('click',()=>{
@@ -673,6 +828,21 @@ const UI = {
       const yr=+m.querySelector(`[data-fa-yr="${id}"]`).value;
       const r=Game.signFreeAgent(id,sal,yr);
       if(r&&r.err)this.toast(r.err);else this.toast('Joueur signé !');this.render();}));
+
+    // tactiques : schémas
+    m.querySelectorAll('[data-off]').forEach(el=>el.addEventListener('change',()=>{Game.setOffScheme(el.dataset.off);this.render();}));
+    m.querySelectorAll('[data-def]').forEach(el=>el.addEventListener('change',()=>{Game.setDefScheme(el.dataset.def);this.render();}));
+    // schémas en direct (match)
+    const offLive=m.querySelector('[data-off-live]'); if(offLive)offLive.addEventListener('change',()=>{Game.setOffScheme(offLive.value);this.toast('Attaque : '+OFF_SCHEMES[offLive.value].name);});
+    const defLive=m.querySelector('[data-def-live]'); if(defLive)defLive.addEventListener('change',()=>{Game.setDefScheme(defLive.value);this.toast('Défense : '+DEF_SCHEMES[defLive.value].name);});
+    // priorités
+    m.querySelectorAll('[data-prio-up]').forEach(b=>b.addEventListener('click',()=>{Game.movePriority(+b.dataset.prioUp,-1);this.render();}));
+    m.querySelectorAll('[data-prio-down]').forEach(b=>b.addEventListener('click',()=>{Game.movePriority(+b.dataset.prioDown,1);this.render();}));
+    m.querySelectorAll('[data-prio-rm]').forEach(b=>b.addEventListener('click',()=>{Game.removePriority(+b.dataset.prioRm);this.render();}));
+    // scouting
+    m.querySelectorAll('[data-scout]').forEach(b=>b.addEventListener('click',()=>{
+      const r=Game.scoutProspect(this._scoutYear,+b.dataset.scout); if(r&&r.err)this.toast(r.err); this.render();}));
+    m.querySelectorAll('[data-scout-year]').forEach(b=>b.addEventListener('click',()=>{this._scoutYear=+b.dataset.scoutYear;this.render();}));
   },
 
   action(act) {
@@ -682,9 +852,12 @@ const UI = {
       case 'simweek': Game.simulateToNextUserGame(); Game.checkSeasonEnd(); Game.save(); R(); break;
       case 'goplay': this.tab='play'; R(); break;
       case 'checkend': Game.checkSeasonEnd(); R(); break;
-      case 'playgame': {
-        const out = Game.playUserGame(); Game.checkSeasonEnd(); Game.save();
-        if (out) this.showGameResult(out.game, out.res); else R();
+      // match interactif
+      case 'startlive': Game.startLiveGame(); this.tab='play'; R(); break;
+      case 'sim-quarter': Game.simQuarter(); R(); break;
+      case 'finish-live': {
+        const out = Game.finishLiveGame();
+        if (out && out.game) this.showGameResult(out.game, out.res); else R();
         break;
       }
       case 'simgame': {
@@ -692,6 +865,9 @@ const UI = {
         if (out) this.toast(`${out.res.home.score>out.res.away.score===(out.game.home===Game.state.userTeam)?'Victoire':'Défaite'} ${out.game.hs}-${out.game.as}`);
         R(); break;
       }
+      // priorités
+      case 'prio-add': { const sel=this.el('prio-add'); if(sel&&sel.value){Game.addPriority(+sel.value);this.render();} break; }
+      case 'prio-reset': Game.resetPriorities(); R(); break;
       // playoffs
       case 'po-playgame': {
         const r = Game.playUserSeriesGame();
@@ -723,18 +899,21 @@ const UI = {
       case 'automin': { autoMinutes(Game.ut()); Game.save(); R(); break; }
       // trades
       case 'trade-eval': {
-        const {give,get} = this.gatherTrade();
-        const gv = give.reduce((s,id)=>s+tradeValue(playerById(Game.ut(),id)),0);
-        const gt = get.reduce((s,id)=>s+tradeValue(playerById(Game.state.teams[this.tradePartner],id)),0);
+        const { userGives, userGets } = this.gatherTrade();
+        const res = Game.evalUserTrade(this.tradePartner, userGives, userGets);
+        const ut = Game.ut(), ot = Game.state.teams[this.tradePartner];
+        const outSalU = userGives.filter(a=>a.kind==='player').reduce((s,a)=>s+(playerById(ut,a.id)?.salary||0),0);
+        const outSalO = userGets.filter(a=>a.kind==='player').reduce((s,a)=>s+(playerById(ot,a.id)?.salary||0),0);
         const el = this.el('trade-summary');
-        const ok = gv >= gt*0.95;
-        el.innerHTML = `<span class="muted">Valeur cédée : <b>${Math.round(gv)}</b> · Valeur reçue : <b>${Math.round(gt)}</b></span>
-          <span class="pill ${ok?'win':'loss'}">${ok?'Offre probablement acceptée':'Offre insuffisante'}</span>`;
+        el.innerHTML = `<div class="row" style="justify-content:space-between">
+            <span class="muted">Salaire cédé : <b>${this.fmt(outSalU)} M$</b> · reçu : <b>${this.fmt(outSalO)} M$</b></span>
+            <span class="pill ${res.ok?'win':'loss'}">${res.ok?'✔ Offre acceptable':'✗ '+res.reason}</span>
+          </div>`;
         break;
       }
       case 'trade-propose': {
-        const {give,get} = this.gatherTrade();
-        const r = Game.proposeUserTrade(this.tradePartner, give, get);
+        const { userGives, userGets } = this.gatherTrade();
+        const r = Game.proposeUserTrade(this.tradePartner, userGives, userGets);
         if (r.ok) { this.toast('Échange conclu !'); R(); }
         else this.toast(r.err);
         break;
@@ -744,17 +923,16 @@ const UI = {
 };
 
 /* --------------------- Détection des logos (optionnels) ------------------ */
-// Vérifie une fois au démarrage quels vrais logos ont été déposés dans assets/logos/.
+// Vérifie au démarrage quels vrais logos ont été déposés dans assets/logos/ (PNG ou SVG).
 const LOGO_AVAIL = {};
+function tryLoad(url) {
+  return new Promise(res => { const i = new Image(); i.onload = () => res(url); i.onerror = () => res(null); i.src = url; });
+}
 function preloadLogos(done) {
-  let pending = TEAMS.length;
-  if (!pending) return done();
-  TEAMS.forEach(t => {
-    const img = new Image();
-    img.onload = () => { LOGO_AVAIL[t.id] = true; if (--pending === 0) done(); };
-    img.onerror = () => { LOGO_AVAIL[t.id] = false; if (--pending === 0) done(); };
-    img.src = 'assets/logos/' + t.id + '.png';
-  });
+  Promise.all(TEAMS.map(async t => {
+    const png = await tryLoad('assets/logos/' + t.id + '.png');
+    LOGO_AVAIL[t.id] = png || await tryLoad('assets/logos/' + t.id + '.svg') || null;
+  })).then(done);
 }
 
 /* ------------------------------ Démarrage -------------------------------- */

@@ -19,7 +19,11 @@ Aucune installation, aucun serveur, aucune connexion internet requise.
 - **Cinq de départ & rotations** — choisissez vos titulaires poste par poste et répartissez les minutes.
 - **Matchs** — jouez chaque match avec **feuille de score détaillée** (box score joueur par joueur) ou simulez rapidement.
 - **Saison régulière de 82 matchs** — calendrier complet, classements Est/Ouest en direct.
-- **Transferts** — négociez des échanges avec les 29 autres franchises (l'IA valorise jeunesse & potentiel). Des offres arrivent aussi spontanément.
+- **Systèmes tactiques** — choisissez un **schéma offensif** (Pace & Space, Seven Seconds, jeu intérieur, Iso stars, Motion…) **et défensif** (homme à homme, switch, zone 2-3, drop, pressing…), avec des effets réels sur la simulation. **Changez de schéma en direct pendant le match** (par quart-temps).
+- **Options prioritaires en attaque** — définissez la hiérarchie offensive (qui prend le plus de tirs : option n°1, n°2…). Impacte directement le nombre de tirs et la production.
+- **Match par quart-temps** — jouez quart-temps par quart-temps, ajustez vos systèmes selon le score, puis consultez la feuille de match détaillée.
+- **Transferts réalistes** — échangez joueurs **et picks de draft** ; l'IA applique un **équilibre salarial** (type NBA), valorise jeunesse, potentiel et besoins de poste, et refuse les offres déséquilibrées. Des offres arrivent aussi spontanément.
+- **Scouting de draft** — explorez les **prochaines cuvées** (2027, 2028…), dépensez des points de scouting pour affiner l'évaluation des prospects (fourchette de note → note exacte). Têtes d'affiche réelles connues ; les autres prospects sont des projections.
 - **Playoffs** — top 8 par conférence, séries au meilleur des 7, jusqu'aux Finales NBA. Jouez votre série match par match.
 - **Intersaison** — prolongations de contrat, **draft** (60 prospects, ordre inversé au classement), **agents libres**.
 - **Progression pluriannuelle** — les joueurs vieillissent, progressent ou déclinent, prennent leur retraite ; les rookies éclosent. Votre « era » se construit saison après saison.

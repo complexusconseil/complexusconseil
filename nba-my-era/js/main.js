@@ -27,6 +27,15 @@ const Game = {
       pendingTrade: null,
       trophies: [],                // titres remportés par le user
       seasonLog: [],               // résultats des matchs du user cette saison
+      liveGame: null,              // match en cours (jeu par quart-temps)
+      scouting: {                  // cuvées futures pour le scouting
+        points: 12,
+        classes: {
+          2027: genProspectClass(2027),
+          2028: genProspectClass(2028),
+          2029: genProspectClass(2029),
+        },
+      },
     };
     this.log(`Bienvenue à la tête des ${this.userTeamFull().name} !`);
     this.save();
@@ -324,10 +333,15 @@ const Game = {
     const retired = ageAndDevelop(s);
     retired.filter(r => r.team === s.userTeam)
            .forEach(r => this.log(`${r.name} (${r.age} ans) prend sa retraite.`));
-    // Préparer draft + agents libres
-    s.draftClass = genDraftClass(s.season + 1);
-    s.freeAgents = genFreeAgents(46);
-    // Compléter les agents libres avec les joueurs en fin de contrat non conservés (IA)
+    // recalcule priorités (des joueurs ont pu partir en retraite)
+    Object.values(s.teams).forEach(t => { t.priorities = autoPriorities(t); });
+    // Draft = cuvée scoutée de l'an prochain (ou générée si absente)
+    const dy = s.season + 1;
+    s.draftClass = (s.scouting.classes[dy] || genProspectClass(dy)).slice()
+                     .sort((a, b) => a.projRank - b.projRank);
+    // Nombre de choix de 1er tour possédés par l'utilisateur cette année
+    s.userPicksLeft = this.ut().picks.filter(p => p.year === dy && p.round === 1).length || 1;
+    s.freeAgents = genFreeAgents();
     this.save();
   },
 
@@ -337,7 +351,7 @@ const Game = {
     Object.values(s.teams).forEach(team => {
       if (team.id === s.userTeam) return;
       let guard = 0;
-      while (team.roster.length < 13 && s.freeAgents.length && guard++ < 20) {
+      while (team.roster.length < 12 && s.freeAgents.length && guard++ < 20) {
         const fa = s.freeAgents.shift();
         fa.salary = contractValue(fa.ovr, fa.age);
         fa.years = randInt(1, 3);
@@ -345,6 +359,13 @@ const Game = {
       }
       team.lineup = autoLineup(team.roster);
       autoMinutes(team);
+      team.priorities = autoPriorities(team);
+    });
+    // Gestion des picks : on retire l'année écoulée, on ajoute une nouvelle année lointaine
+    const usedYear = s.season + 1;
+    Object.values(s.teams).forEach(t => {
+      t.picks = (t.picks || []).filter(pk => pk.year > usedYear);
+      t.picks.push({ kind: 'pick', year: s.season + 4, round: 1, from: t.id });
     });
     // Nouvelle saison
     s.season++;
@@ -356,10 +377,33 @@ const Game = {
     s.draftClass = null;
     s.freeAgents = null;
     s.pendingTrade = null;
+    s.liveGame = null;
+    // Scouting : la cuvée jouée disparaît, on génère une nouvelle cuvée lointaine
+    delete s.scouting.classes[usedYear];
+    const far = s.season + 3;
+    if (!s.scouting.classes[far]) s.scouting.classes[far] = genProspectClass(far);
+    s.scouting.points = 12;
     // reset bilans
-    Object.values(s.teams).forEach(t => { t.w=0; t.l=0; t.streak=0; t.ptsFor=0; t.ptsAgn=0; });
+    Object.values(s.teams).forEach(t => { t.w = 0; t.l = 0; t.streak = 0; t.ptsFor = 0; t.ptsAgn = 0; });
     this.log(`Début de la saison ${s.season}.`);
     this.save();
+  },
+
+  /* ------------------------------ Scouting ------------------------------ */
+  scoutingClasses() {
+    // années futures encore scoutables (hors cuvée en cours de draft)
+    return Object.keys(this.state.scouting.classes).map(Number).sort();
+  },
+  scoutProspect(year, pid) {
+    const s = this.state;
+    const cls = s.scouting.classes[year]; if (!cls) return { err: 'Cuvée indisponible.' };
+    const p = cls.find(x => x.id === pid); if (!p) return { err: 'Prospect introuvable.' };
+    if ((p.scout || 0) >= 3) return { err: 'Prospect déjà scouté à fond.' };
+    if (s.scouting.points <= 0) return { err: 'Plus de points de scouting cette saison.' };
+    p.scout = (p.scout || 0) + 1;
+    s.scouting.points--;
+    this.save();
+    return { ok: true, level: p.scout };
   },
 
   /* --------------------------- Actions manager -------------------------- */
@@ -372,7 +416,7 @@ const Game = {
     fa.salary = round1(salary); fa.years = years;
     s.freeAgents.splice(idx, 1);
     ut.roster.push(fa);
-    ut.lineup = autoLineup(ut.roster); autoMinutes(ut);
+    ut.lineup = autoLineup(ut.roster); autoMinutes(ut); ut.priorities = autoPriorities(ut);
     this.log(`${fa.name} signe pour ${years} an(s) à ${round1(salary)} M$/an.`);
     this.save();
     return true;
@@ -382,7 +426,7 @@ const Game = {
     const s = this.state; const ut = this.ut();
     const p = playerById(ut, pid); if (!p) return;
     ut.roster = ut.roster.filter(x => x.id !== pid);
-    ut.lineup = autoLineup(ut.roster); autoMinutes(ut);
+    ut.lineup = autoLineup(ut.roster); autoMinutes(ut); ut.priorities = autoPriorities(ut);
     if (s.freeAgents) { p.years = 0; s.freeAgents.unshift(p); }
     this.log(`${p.name} est libéré.`);
     this.save();
@@ -397,13 +441,19 @@ const Game = {
 
   draftPlayer(pid) {
     const s = this.state; const ut = this.ut();
+    if ((s.userPicksLeft || 0) <= 0) return { err: 'Vous n\'avez plus de choix de draft cette année.' };
+    if (ut.roster.length >= 15) return { err: 'Effectif complet (15 max).' };
     const idx = s.draftClass.findIndex(p => p.id === pid);
     if (idx < 0) return;
     const p = s.draftClass.splice(idx, 1)[0];
+    // nettoie les champs de prospect
+    p.prospect = false; delete p.scout; delete p._noise; delete p.projRank;
     ut.roster.push(p);
-    ut.lineup = autoLineup(ut.roster); autoMinutes(ut);
-    this.log(`Vous draftez ${p.name} (${p.pos}, ${p.ovr} OVR, potentiel ${p.potential}).`);
+    ut.lineup = autoLineup(ut.roster); autoMinutes(ut); ut.priorities = autoPriorities(ut);
+    s.userPicksLeft--;
+    this.log(`Draft : vous sélectionnez ${p.name} (${p.pos}, ${p.ovr} OVR, potentiel ${p.potential}).`);
     this.save();
+    return { ok: true };
   },
 
   // L'IA drafte automatiquement (meilleur prospect dispo) pour un pick
@@ -430,27 +480,125 @@ const Game = {
     this.save();
   },
 
-  autoManage() { const ut = this.ut(); ut.lineup = autoLineup(ut.roster); autoMinutes(ut); this.save(); },
+  autoManage() {
+    const ut = this.ut();
+    ut.lineup = autoLineup(ut.roster); autoMinutes(ut); ut.priorities = autoPriorities(ut);
+    this.save();
+  },
 
+  /* --------------------------- Schémas & priorités ---------------------- */
+  setOffScheme(key) { if (OFF_SCHEMES[key]) { this.ut().offScheme = key; this.save(); } },
+  setDefScheme(key) { if (DEF_SCHEMES[key]) { this.ut().defScheme = key; this.save(); } },
+  // Réordonne la hiérarchie offensive : déplace un joueur d'un cran (dir -1 = monte)
+  movePriority(pid, dir) {
+    const ut = this.ut();
+    let arr = (ut.priorities || []).slice();
+    if (!arr.includes(pid)) arr.push(pid);
+    const i = arr.indexOf(pid);
+    const j = i + dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    ut.priorities = arr;
+    this.save();
+  },
+  addPriority(pid) {
+    const ut = this.ut();
+    ut.priorities = (ut.priorities || []).filter(x => x !== pid);
+    ut.priorities.push(pid);
+    this.save();
+  },
+  removePriority(pid) {
+    const ut = this.ut();
+    ut.priorities = (ut.priorities || []).filter(x => x !== pid);
+    this.save();
+  },
+  resetPriorities() { const ut = this.ut(); ut.priorities = autoPriorities(ut); this.save(); },
+
+  /* --------------------------- Transferts (assets) ---------------------- */
+  // Un asset est { kind:'player', id } ou { kind:'pick', year, round, from }
   acceptPendingTrade() {
     const s = this.state; const t = s.pendingTrade; if (!t) return;
-    executeTrade(s, t.fromId, t.toId, t.get, t.give); // depuis la vue user : user donne t.get, reçoit t.give
-    const gained = t.give.map(id => this.ut().roster.find(p=>p.id===id)?.name).filter(Boolean).join(', ');
-    this.log(`Transfert accepté avec ${teamById(t.fromId).city}.`);
+    executeTrade(s, t.partner, t.userGives, t.userGets);
+    this.log(`Transfert conclu avec ${teamById(t.partner).city}.`);
     s.pendingTrade = null; this.save();
   },
   declinePendingTrade() { this.state.pendingTrade = null; this.save(); },
 
-  // Offre de l'utilisateur vers une IA
-  proposeUserTrade(otherId, userGiveIds, userGetIds) {
+  // Offre de l'utilisateur vers une IA (assets des deux côtés)
+  proposeUserTrade(otherId, userGives, userGets) {
     const s = this.state;
-    if (!userGiveIds.length && !userGetIds.length) return { err: 'Sélectionnez des joueurs.' };
-    if (aiAcceptsTrade(s, otherId, userGiveIds, userGetIds)) {
-      executeTrade(s, s.userTeam, otherId, userGiveIds, userGetIds);
+    if (!userGives.length && !userGets.length) return { err: 'Sélectionnez au moins un élément.' };
+    const res = aiEvaluateTrade(s, otherId, userGives, userGets);
+    if (res.ok) {
+      executeTrade(s, otherId, userGives, userGets);
       this.log(`Échange conclu avec ${teamById(otherId).city}.`);
       this.save();
       return { ok: true };
     }
-    return { ok: false, err: `${teamById(otherId).city} refuse cette offre.` };
+    return { ok: false, err: res.reason };
+  },
+  // Évaluation sans exécuter (pour le bouton "Évaluer")
+  evalUserTrade(otherId, userGives, userGets) {
+    return aiEvaluateTrade(this.state, otherId, userGives, userGets);
+  },
+
+  /* --------------------- Match interactif (quart-temps) ----------------- */
+  startLiveGame() {
+    const s = this.state;
+    const next = this.nextUserGame();
+    if (!next) return null;
+    while (s.dayIndex < next.day) this.simulateDay();
+    const g = s.schedule[s.dayIndex].find(x => x === next.game);
+    s.liveGame = {
+      gameRef: { home: g.home, away: g.away },
+      q: 0,
+      home: newBox(), away: newBox(),
+      quarters: [],   // [{q, hs, as}]
+      done: false,
+    };
+    this.save();
+    return s.liveGame;
+  },
+  // Simule le prochain quart-temps avec les schémas actuels de l'utilisateur
+  simQuarter() {
+    const s = this.state; const lg = s.liveGame; if (!lg || lg.done) return null;
+    const H = s.teams[lg.gameRef.home], A = s.teams[lg.gameRef.away];
+    // ~un quart de match
+    const portion = 0.25;
+    const qh = genTeamBox(H, A, portion);
+    const qa = genTeamBox(A, H, portion);
+    if (lg.q === 0) qh.score += randInt(1, 4);  // avantage terrain au 1er quart
+    mergeBox(lg.home, qh); mergeBox(lg.away, qa);
+    lg.q++;
+    lg.quarters.push({ q: lg.q, hs: qh.score, as: qa.score });
+    if (lg.q >= 4) {
+      // prolongations si égalité
+      let ot = 0;
+      while (lg.home.score === lg.away.score) {
+        const oh = genTeamBox(H, A, 0.12), oa = genTeamBox(A, H, 0.12);
+        mergeBox(lg.home, oh); mergeBox(lg.away, oa);
+        if (++ot > 4) { lg.home.score++; }
+      }
+      lg.ot = ot; lg.done = true;
+    }
+    this.save();
+    return lg;
+  },
+  // Termine le match en cours et applique le résultat au calendrier/cumuls
+  finishLiveGame() {
+    const s = this.state; const lg = s.liveGame; if (!lg) return null;
+    while (!lg.done) this.simQuarter();
+    const g = s.schedule[s.dayIndex].find(x => x.home === lg.gameRef.home && x.away === lg.gameRef.away && !x.played);
+    const res = { home: lg.home, away: lg.away, ot: lg.ot || 0 };
+    if (g) {
+      applyGameResult(s, g.home, g.away, res);
+      g.played = true; g.hs = res.home.score; g.as = res.away.score;
+      this.recordUserGame(g, res);
+    }
+    this.simulateDay();
+    this.checkSeasonEnd();
+    s.liveGame = null;
+    this.save();
+    return { game: g, res };
   },
 };

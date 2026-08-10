@@ -340,3 +340,46 @@ const REAL_ROSTERS = {
     { n: 'Luke Kornet', pos: 'C', ovr: 74, age: 30 },
   ],
 };
+
+/* ==========================================================================
+   Prospects de draft — têtes d'affiche réelles connues (le reste est projeté)
+   La classe 2026 est déjà en NBA (Dybantsa, Boozer, Peterson…). La cuvée 2027
+   manque de superstar établie ; seul le n°1 pressenti est connu à ce jour.
+   ⚠️ Prospects futurs = projections incertaines (lycéens/universitaires).
+   ========================================================================== */
+const REAL_PROSPECTS = {
+  2027: [
+    { n: 'Tyran Stokes', pos: 'SF', ovr: 76, pot: 92 }, // n°1 pressenti (source : ESPN/SI)
+  ],
+  // 2028+ : prospects projetés (générés), aucune donnée réelle fiable à ce stade.
+};
+
+/* ==========================================================================
+   Agents libres vétérans (best-effort). Disponibilité fictionnalisée pour le jeu.
+   ========================================================================== */
+const REAL_FREE_AGENTS = [
+  { n: 'Chris Paul', pos: 'PG', ovr: 77, age: 40 },
+  { n: 'Russell Westbrook', pos: 'PG', ovr: 76, age: 37 },
+  { n: 'Ben Simmons', pos: 'PG', ovr: 74, age: 29 },
+  { n: 'Kelly Olynyk', pos: 'C', ovr: 76, age: 34 },
+  { n: 'Gary Payton II', pos: 'SG', ovr: 74, age: 33 },
+  { n: 'Lonnie Walker IV', pos: 'SG', ovr: 74, age: 27 },
+  { n: 'Seth Curry', pos: 'SG', ovr: 74, age: 35 },
+  { n: 'Markieff Morris', pos: 'PF', ovr: 71, age: 36 },
+  { n: 'Robin Lopez', pos: 'C', ovr: 71, age: 37 },
+  { n: 'JaVale McGee', pos: 'C', ovr: 71, age: 38 },
+  { n: 'Nerlens Noel', pos: 'C', ovr: 71, age: 31 },
+  { n: 'Otto Porter Jr.', pos: 'SF', ovr: 72, age: 32 },
+  { n: 'Joe Ingles', pos: 'SF', ovr: 73, age: 38 },
+  { n: 'Reggie Jackson', pos: 'PG', ovr: 73, age: 35 },
+  { n: 'Delon Wright', pos: 'PG', ovr: 73, age: 33 },
+  { n: 'Wesley Matthews', pos: 'SG', ovr: 71, age: 39 },
+  { n: 'Bismack Biyombo', pos: 'C', ovr: 71, age: 33 },
+  { n: 'Justin Holiday', pos: 'SF', ovr: 71, age: 36 },
+  { n: 'Patty Mills', pos: 'PG', ovr: 71, age: 37 },
+  { n: 'Alex Len', pos: 'C', ovr: 71, age: 32 },
+  { n: 'Cory Joseph', pos: 'PG', ovr: 71, age: 34 },
+  { n: 'Taj Gibson', pos: 'PF', ovr: 70, age: 40 },
+  { n: 'Kevin Knox II', pos: 'SF', ovr: 72, age: 26 },
+  { n: 'Davis Bertans', pos: 'PF', ovr: 72, age: 33 },
+];

@@ -67,6 +67,7 @@ const UI = {
         <h1>NBA <span>My Era</span></h1>
         <p>Prenez les rênes d'une franchise NBA. Gérez l'effectif, le cinq de départ, les rotations,
            les transferts, la draft et les agents libres — saison après saison.</p>
+        <p class="muted" style="font-size:12.5px">Effectifs : instantané <b>au 10/08/2026</b> (saison 2026-27), reconstitué au mieux depuis des sources web — à vérifier, et modifiable en jeu.</p>
       </div>
       <main>
         <div class="card">

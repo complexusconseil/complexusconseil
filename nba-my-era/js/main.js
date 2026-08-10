@@ -12,7 +12,7 @@ const Game = {
   newGame(userTeamId, managerName) {
     const teams = buildLeague(userTeamId);
     this.state = {
-      season: 2025,
+      season: 2026,
       managerName: managerName || 'Manager',
       userTeam: userTeamId,
       teams,

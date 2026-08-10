@@ -34,10 +34,15 @@ Le jeu tourne dans un **vrai moteur 3D WebGL** (Three.js) avec un pipeline de
 rendu moderne :
 
 - **Matériaux PBR** (metalness/roughness) et **éclairage par image (IBL)** via un
-  ciel procédural → surfaces réalistes, or et métal qui brillent, eau réfléchissante.
+  ciel procédural → surfaces réalistes, or et métal qui brillent.
 - **Tone mapping ACES** (rendu « cinéma ») et espace colorimétrique correct.
 - **Post-traitement** : occlusion ambiante **SSAO** (ombres de contact), **bloom**,
   anti-aliasing **SMAA**, **ombres douces**.
+- **Terrain** multi-textures avec **relief** (normal maps), **eau animée** réfléchissante,
+  **végétation dense** (herbes et rochers par milliers, en instancing).
+- **Personnages articulés animés** : torse, tête, bras, jambes et arme, avec animations
+  de marche, d'attaque et de repos ; cavaliers montés, béliers à roues.
+- Bâtiments détaillés (tourelles d'angle, portes, fenêtres, drapeaux).
 - Caméra RTS inclinée (pan, rotation, zoom), **brouillard de guerre 3D**, flèches en vol.
 - **Réglage de qualité automatique** : version allégée sur mobile pour rester fluide.
 

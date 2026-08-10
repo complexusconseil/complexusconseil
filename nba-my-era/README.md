@@ -33,6 +33,9 @@ Aucune installation, aucun serveur, aucune connexion internet requise.
 - **Numéros retirés** — les Hall of Famers voient leur **maillot retiré** par leur franchise principale (détail dans la fiche de chaque franchise).
 - **Récits & jalons** — actualités narratives : **éclosion** de jeunes stars, **paliers de points** en carrière (10k, 20k…).
 - **Frise des dynasties** — chronologie des champions et détection des **dynasties** (titres consécutifs), classement des titres par franchise.
+- **Staff & entraînement** — embauchez votre **staff technique** (entraîneur principal, coordinateurs offensif/défensif, développement, médical) sur un marché renouvelé chaque intersaison. Un bon staff améliore l'adresse, le **développement des jeunes** et **réduit les blessures**. Choisissez aussi un **axe d'entraînement** (tir, défense…) qui fait progresser vos jeunes.
+- **Moral & chimie du vestiaire** — chaque joueur a un **moral** (résultats, temps de jeu vs attendu, blessures) ; la **chimie** de l'équipe module légèrement les performances. Indicateurs sur l'effectif et le tableau de bord.
+- **Contrats max & extensions rookie** — salaires **plafonnés** selon l'ancienneté ; les jeunes draftés peuvent recevoir une **extension rookie** (contrat max), avec un moral en hausse à la prolongation.
 - **Époques historiques** — démarrez à différentes **époques de la NBA** (années 60 « Russell & Wilt », 80 « Magic vs Bird », 90 « ère Jordan », 2010 « Warriors & LeBron », ou moderne), avec des **effectifs de légendes** et des **règles adaptées** (ligne à 3 points absente en 1968, rythme et fréquence du tir extérieur variables selon l'époque).
 - **Playoffs** — top 8 par conférence, séries au meilleur des 7, jusqu'aux Finales NBA. Jouez votre série match par match.
 - **Intersaison** — prolongations de contrat, **draft** (60 prospects, ordre inversé au classement), **agents libres**.

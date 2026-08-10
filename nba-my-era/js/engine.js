@@ -31,6 +31,40 @@ const DEFAULT_OFF = 'balanced', DEFAULT_DEF = 'manToMan';
 // Multiplicateurs d'usage selon le rang dans la hiérarchie offensive (option 1, 2, 3…)
 const PRIORITY_MULT = [1.65, 1.35, 1.15, 1.02, 0.95];
 
+/* ------------------------- Staff & entraînement -------------------------- */
+const STAFF_ROLES = [
+  ['head', 'Entraîneur principal'], ['offense', 'Coordinateur offensif'],
+  ['defense', 'Coordinateur défensif'], ['development', 'Développement des joueurs'],
+  ['medical', 'Staff médical'],
+];
+const TRAINING_FOCUS = {
+  none:       { name: 'Aucun (équilibré)', attr: null },
+  shooting:   { name: 'Tir extérieur', attr: 'shooting' },
+  inside:     { name: 'Jeu intérieur', attr: 'inside' },
+  playmaking: { name: 'Création / passe', attr: 'playmaking' },
+  defense:    { name: 'Défense', attr: 'defense' },
+  athletic:   { name: 'Athlétisme', attr: 'athletic' },
+};
+function genStaffName() { return pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES); }
+function genStaffMarket() {
+  const m = {};
+  STAFF_ROLES.forEach(([k]) => {
+    m[k] = Array.from({ length: 4 }, () => { const q = randInt(60, 94); return { name: genStaffName(), quality: q, salary: round1(0.8 + (q - 58) * 0.22) }; });
+  });
+  return m;
+}
+function defaultStaff() {
+  const s = {}; STAFF_ROLES.forEach(([k]) => s[k] = { name: genStaffName(), quality: 74, salary: 4 }); return s;
+}
+// Applique les qualités du staff (state.staff) aux facteurs de coaching de l'équipe utilisateur.
+function applyUserStaff(team, staff) {
+  const q = r => (staff && staff[r] ? staff[r].quality : 74);
+  team.coachOff = (q('head') + q('offense')) / 2;
+  team.coachDef = (q('head') + q('defense')) / 2;
+  team.coachDev = q('development');
+  team.coachHealth = q('medical');
+}
+
 const rnd = () => Math.random();
 const randInt = (a, b) => Math.floor(rnd() * (b - a + 1)) + a;
 const pick = arr => arr[Math.floor(rnd() * arr.length)];
@@ -103,6 +137,7 @@ function makePlayer(pos, opts = {}) {
     draftedSeason: null,  // saison de début NBA (pour le trophée de meilleur rookie)
     injuryGames: 0,       // matchs d'indisponibilité restants (blessure)
     _injuryDesc: null,
+    morale: 70,           // moral (0-100)
   };
   p.ovr = overall(p);
   p.peakOvr = p.ovr;      // meilleure note atteinte en carrière
@@ -235,6 +270,8 @@ function buildLeague(userTeamId, eraId) {
       minutes: {},                  // id -> minutes cible
       priorities: [],               // hiérarchie offensive (ids), calculée ci-dessous
       offScheme: off, defScheme: def,
+      // facteurs de coaching (qualité 62-90) — l'utilisateur les surchargera via son staff
+      coachOff: randInt(66, 86), coachDef: randInt(66, 86), coachDev: randInt(66, 88), coachHealth: randInt(66, 86),
       w: 0, l: 0, streak: 0,
       ptsFor: 0, ptsAgn: 0,
     };
@@ -344,6 +381,32 @@ function teamOverall(team) {
 function teamSalary(team) {
   return round1(team.roster.reduce((s,p)=>s+p.salary, 0));
 }
+// Chimie du vestiaire : moral moyen pondéré par les minutes de la rotation
+function teamChemistry(team) {
+  const rot = team.roster.filter(p => (team.minutes[p.id] || 0) > 0);
+  if (!rot.length) return 70;
+  let s = 0, w = 0; rot.forEach(p => { const m = team.minutes[p.id] || 1; s += (p.morale != null ? p.morale : 70) * m; w += m; });
+  return s / (w || 1);
+}
+// Met à jour le moral après un match (victoire, temps de jeu vs attendu, blessure)
+function updateMorale(team, won) {
+  const sorted = [...team.roster].sort((a, b) => b.ovr - a.ovr);
+  team.roster.forEach(p => {
+    let d = won ? 1.1 : -1.1;
+    const mins = team.minutes[p.id] || 0;
+    const rank = sorted.indexOf(p);
+    const expected = rank < 5 ? 30 : rank < 9 ? 18 : rank < 11 ? 9 : 3;
+    if (mins < expected - 6) d -= 1.2 * (p.ovr >= 80 ? 1.7 : 1);   // sous-utilisé (pire pour les stars)
+    else if (mins > expected + 6) d += 0.4;
+    if (p.injuryGames > 0) d -= 0.4;
+    p.morale = clamp((p.morale != null ? p.morale : 70) + d + gauss(0, 0.4), 5, 100);
+  });
+}
+// Salaire max autorisé (paliers d'ancienneté approximés par l'âge)
+function maxSalary(p) {
+  const tier = p.age <= 24 ? 36 : p.age <= 29 ? 45 : 49;
+  return round1(clamp(tier, MIN_SALARY, MAX_SALARY));
+}
 
 /* --------------------------- Simulation de match ------------------------- */
 function schemeOff(team) { return OFF_SCHEMES[team.offScheme] || OFF_SCHEMES.balanced; }
@@ -408,10 +471,14 @@ function genTeamBox(team, opp, portion = 1) {
 
     const defAdj = (oppDefR - 75) * 0.0035;
     const eraFg = ERA_RULES.fgAdj || 0;
-    let two_pct = (clamp(0.40 + (p.inside - 60) * 0.0032 - defAdj, 0.30, 0.66)) * off.inside * oppD.oppInside + eraFg;
-    two_pct = clamp(two_pct, 0.27, 0.70);
-    let three_pct = clamp(0.30 + (p.shooting - 65) * 0.0032 - defAdj, 0.22, 0.47) * (0.55 + 0.45 * off.three) + eraFg;
-    three_pct = clamp(three_pct, 0.20, 0.48);
+    // Bonus coaching (attaque de l'équipe vs défense adverse) + chimie du vestiaire
+    const coach = ((team.coachOff || 74) - 74) * 0.0018 - ((opp.coachDef || 74) - 74) * 0.0018;
+    const chem = (teamChemistry(team) - 70) * 0.0008;
+    const mod = coach + chem;
+    let two_pct = (clamp(0.40 + (p.inside - 60) * 0.0032 - defAdj, 0.30, 0.66)) * off.inside * oppD.oppInside + eraFg + mod;
+    two_pct = clamp(two_pct, 0.27, 0.72);
+    let three_pct = clamp(0.30 + (p.shooting - 65) * 0.0032 - defAdj, 0.22, 0.47) * (0.55 + 0.45 * off.three) + eraFg + mod;
+    three_pct = clamp(three_pct, 0.20, 0.50);
 
     let fgm2 = 0; for (let i = 0; i < twoA; i++) if (rnd() < two_pct) fgm2++;
     let tpm = 0; for (let i = 0; i < tpa; i++) if (rnd() < three_pct) tpm++;
@@ -473,7 +540,8 @@ function maybeInjure(team) {
     if (p.injuryGames > 0) return;
     const load = clamp((team.minutes[p.id] || 0) / 34, 0, 1.3);
     const ageRisk = p.age >= 34 ? 1.5 : p.age >= 31 ? 1.2 : p.age <= 22 ? 1.1 : 1;
-    if (rnd() >= 0.006 * load * ageRisk) return;  // ~0.6% pondéré minutes/âge
+    const medical = 1 - clamp(((team.coachHealth || 74) - 74) / 140, -0.15, 0.18);  // meilleur staff médical = moins de blessures
+    if (rnd() >= 0.006 * load * ageRisk * medical) return;
     const r = rnd();
     let games, desc, sev, severe = false;
     if (r < 0.60) { games = randInt(1, 6); sev = 'légère'; desc = pick(INJ_MINOR); }
@@ -822,7 +890,15 @@ function ageAndDevelop(gameState) {
       else if (p.age <= 30) delta = randInt(-1, 1);
       else if (p.age <= 33) delta = randInt(-3, 0);
       else delta = randInt(-5, -1);
+      // Bonus « développement des joueurs » du staff pour les jeunes
+      if (p.age <= 25) delta += Math.round(clamp(((team.coachDev || 74) - 74) / 12, 0, 2));
       applyOvrDelta(p, delta);
+      // Entraînement ciblé (équipe de l'utilisateur)
+      if (team.id === gameState.userTeam && gameState.trainingFocus && TRAINING_FOCUS[gameState.trainingFocus] && TRAINING_FOCUS[gameState.trainingFocus].attr && p.age <= 28) {
+        const attr = TRAINING_FOCUS[gameState.trainingFocus].attr;
+        p[attr] = clamp(p[attr] + randInt(1, 3), 40, 99); p.ovr = overall(p);
+        if (p.ovr > p.potential) p.potential = p.ovr;
+      }
       p.peakOvr = Math.max(p.peakOvr || p.ovr, p.ovr);
       if (p.years > 0) p.years--;
     });

@@ -41,12 +41,28 @@ const Game = {
       retiredNumbers: {},          // numéros retirés par franchise
       board: { patience: 60 },     // direction : objectif & patience
       fired: false,
+      staff: defaultStaff(),       // staff technique de l'utilisateur
+      staffMarket: genStaffMarket(),
+      trainingFocus: 'none',       // axe d'entraînement de la saison
       scouting: { points: 12, classes },
     };
+    applyUserStaff(this.ut(), this.state.staff);
     this.log(`Bienvenue à la tête des ${this.userTeamFull().name} ! (${era ? era.name : 'Époque moderne'})`);
     this.setBoardGoal();
     this.save();
   },
+
+  /* --------------------------- Staff & entraînement --------------------- */
+  hireStaff(role, index) {
+    const s = this.state;
+    const cand = s.staffMarket[role] && s.staffMarket[role][index];
+    if (!cand) return;
+    s.staff[role] = { name: cand.name, quality: cand.quality, salary: cand.salary };
+    applyUserStaff(this.ut(), s.staff);
+    this.log(`Staff : ${cand.name} rejoint le poste « ${STAFF_ROLES.find(r => r[0] === role)[1]} » (qualité ${cand.quality}).`);
+    this.save();
+  },
+  setTrainingFocus(focus) { if (TRAINING_FOCUS[focus]) { this.state.trainingFocus = focus; this.save(); } },
 
   /* --------------------------- Direction (board) ------------------------ */
   setBoardGoal() {
@@ -166,6 +182,9 @@ const Game = {
       const newInj = maybeInjure(s.teams[tid]);
       if (tid === s.userTeam) newInj.forEach(n => this.log(`🏥 ${n.name} blessé (${n.desc}) — absent ~${n.games} matchs.`));
     });
+    // Moral du vestiaire (résultat + temps de jeu)
+    day.forEach(g => { if (g.hs == null) return; const hWon = g.hs > g.as;
+      updateMorale(s.teams[g.home], hWon); updateMorale(s.teams[g.away], !hWon); });
     s.dayIndex++;
     if (s.dayIndex % 10 === 0) this.generateStorylines();
     // proposition de transfert IA de temps en temps
@@ -524,6 +543,10 @@ const Game = {
     const far = s.season + 3;
     if (!s.scouting.classes[far]) s.scouting.classes[far] = genProspectClass(far);
     s.scouting.points = 12;
+    // Staff : nouveau marché ; moral qui se recentre légèrement entre les saisons
+    s.staffMarket = genStaffMarket();
+    applyUserStaff(this.ut(), s.staff);
+    Object.values(s.teams).forEach(t => t.roster.forEach(p => { p.morale = clamp((p.morale != null ? p.morale : 70) + (72 - (p.morale != null ? p.morale : 70)) * 0.5, 5, 100); }));
     // reset bilans
     Object.values(s.teams).forEach(t => { t.w = 0; t.l = 0; t.streak = 0; t.ptsFor = 0; t.ptsAgn = 0; });
     this.setBoardGoal();     // nouvel objectif de la direction
@@ -555,7 +578,8 @@ const Game = {
     if (idx < 0) return false;
     if (ut.roster.length >= 15) return { err: 'Effectif complet (15 max).' };
     const fa = s.freeAgents[idx];
-    fa.salary = round1(salary); fa.years = years;
+    fa.salary = round1(clamp(salary, MIN_SALARY, maxSalary(fa))); fa.years = years;
+    fa.morale = 75;
     s.freeAgents.splice(idx, 1);
     ut.roster.push(fa);
     ut.lineup = autoLineup(ut.roster); autoMinutes(ut); ut.priorities = autoPriorities(ut);
@@ -576,8 +600,11 @@ const Game = {
 
   resignPlayer(pid, salary, years) {
     const p = playerById(this.ut(), pid); if (!p) return;
-    p.salary = round1(salary); p.years = years;
-    this.log(`${p.name} prolongé : ${years} an(s), ${round1(salary)} M$/an.`);
+    const cap = maxSalary(p);
+    p.salary = round1(clamp(salary, MIN_SALARY, cap)); p.years = years;
+    p.morale = clamp((p.morale != null ? p.morale : 70) + 8, 5, 100);   // prolongation = moral en hausse
+    const rookie = p.draftedSeason && p.age <= 25;
+    this.log(`${rookie ? 'Prolongation rookie' : 'Prolongation'} : ${p.name} — ${years} an(s), ${p.salary} M$/an${p.salary >= cap ? ' (max)' : ''}.`);
     this.save();
   },
 

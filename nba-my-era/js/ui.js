@@ -12,6 +12,7 @@ const UI = {
   fmt(n, d = 1) { return (Math.round(n * 10 ** d) / 10 ** d).toFixed(d); },
   ovrClass(o) { return o >= 88 ? 'elite' : o >= 80 ? 'great' : o >= 73 ? 'good' : o >= 65 ? 'avg' : 'low'; },
   ovrTag(o) { return `<span class="ovr ${this.ovrClass(o)}">${o}</span>`; },
+  moraleEmoji(p) { const m = p.morale != null ? p.morale : 70; return m >= 80 ? '😀' : m >= 62 ? '🙂' : m >= 45 ? '😐' : '😞'; },
   posTag(p) { return `<span class="pos-tag">${p}</span>`; },
   badge(id, size = 42) {
     const t = teamById(id);
@@ -154,7 +155,7 @@ const UI = {
   tabsBar() {
     const s = Game.state;
     const tabs = [['dash', '🏠 Accueil'], ['roster', '👥 Effectif'], ['lineup', '📋 Cinq & Rotations'],
-                  ['tactics', '🎯 Tactiques']];
+                  ['tactics', '🎯 Tactiques'], ['staff', '🧑‍🏫 Staff']];
     if (s.phase === 'regular') tabs.push(['play', '🏀 Match'], ['schedule', '🗓️ Calendrier']);
     if (s.phase === 'playoffs') tabs.push(['playoffs', '🏆 Playoffs']);
     if (s.phase === 'offseason') tabs.push(['offseason', '🌴 Intersaison']);
@@ -195,7 +196,7 @@ const UI = {
     const m = this.el('main');
     const map = {
       dash: () => this.dashView(), roster: () => this.rosterView(), lineup: () => this.lineupView(),
-      tactics: () => this.tacticsView(), scouting: () => this.scoutingView(),
+      tactics: () => this.tacticsView(), staff: () => this.staffView(), scouting: () => this.scoutingView(),
       play: () => this.playView(), schedule: () => this.scheduleView(), standings: () => this.standingsView(),
       league: () => this.leagueView(), news: () => this.newsView(), trades: () => this.tradesView(),
       playoffs: () => this.playoffsView(), offseason: () => this.offseasonView(),
@@ -265,6 +266,7 @@ const UI = {
         </div>
         <div class="card"><h3>Franchise</h3>
           <div class="kv"><span>Note d'équipe</span><span class="v">${teamOverall(ut)} OVR</span></div>
+          <div class="kv"><span>Chimie du vestiaire</span><span class="v">${(() => { const c = Math.round(teamChemistry(ut)); return `${this.moraleEmoji({morale:c})} ${c}/100`; })()}</span></div>
           <div class="kv"><span>Masse salariale</span><span class="v">${teamSalary(ut)} M$</span></div>
           <div class="kv"><span>Titres remportés</span><span class="v">${s.trophies.length} 🏆</span></div>
         </div>
@@ -306,7 +308,7 @@ const UI = {
       const st = p.stats; const inLine = starters.has(p.id);
       return `<tr>
         <td>${this.posTag(p.pos)}</td>
-        <td class="name">${inLine?'⭐ ':''}${p.name}${p.injuryGames>0?` <span title="${p._injuryDesc||''}" style="color:var(--red)">🏥${p.injuryGames}</span>`:''}</td>
+        <td class="name">${inLine?'⭐ ':''}<span title="Moral ${Math.round(p.morale!=null?p.morale:70)}/100">${this.moraleEmoji(p)}</span> ${p.name}${p.injuryGames>0?` <span title="${p._injuryDesc||''}" style="color:var(--red)">🏥${p.injuryGames}</span>`:''}</td>
         <td>${p.age}</td>
         <td>${this.ovrTag(p.ovr)}</td>
         <td class="muted">${p.potential}</td>
@@ -403,6 +405,46 @@ const UI = {
           <button class="btn ghost sm" data-act="prio-reset">⚙️ Hiérarchie auto</button>
         </div>
       </div>`;
+  },
+
+  /* ------------------------------- Staff -------------------------------- */
+  staffView() {
+    const s = Game.state; const ut = Game.ut();
+    const roleName = k => (STAFF_ROLES.find(r => r[0] === k) || [k, k])[1];
+    const qColor = q => q >= 85 ? 'var(--green)' : q >= 72 ? 'var(--accent)' : 'var(--muted)';
+    // Staff actuel
+    const current = STAFF_ROLES.map(([k]) => {
+      const st = s.staff[k] || {};
+      return `<div class="kv"><span>${roleName(k)}</span><span class="v">${st.name || '—'} <b style="color:${qColor(st.quality||0)}">(${st.quality||'—'})</b></span></div>`;
+    }).join('');
+    const bonuses = `<div class="grid cols2" style="margin-top:8px">
+      <div class="kv"><span>Bonus attaque</span><span class="v">${Math.round((ut.coachOff||74))}</span></div>
+      <div class="kv"><span>Bonus défense</span><span class="v">${Math.round((ut.coachDef||74))}</span></div>
+      <div class="kv"><span>Développement</span><span class="v">${Math.round((ut.coachDev||74))}</span></div>
+      <div class="kv"><span>Médical (anti-blessures)</span><span class="v">${Math.round((ut.coachHealth||74))}</span></div></div>`;
+
+    // Marché du staff
+    const market = STAFF_ROLES.map(([k]) => {
+      const cands = (s.staffMarket[k] || []).map((c, i) =>
+        `<tr><td class="name">${c.name}</td><td><b style="color:${qColor(c.quality)}">${c.quality}</b></td><td>${c.salary} M$</td>
+          <td><button class="btn green sm" data-hire="${k}:${i}">Embaucher</button></td></tr>`).join('');
+      return `<div class="card"><h3>${roleName(k)}</h3><div class="table-wrap"><table><thead><tr><th class="name">Candidat</th><th>Qualité</th><th>Salaire</th><th></th></tr></thead><tbody>${cands}</tbody></table></div></div>`;
+    }).join('');
+
+    const focusOpts = Object.entries(TRAINING_FOCUS).map(([k, v]) =>
+      `<option value="${k}" ${s.trainingFocus === k ? 'selected' : ''}>${v.name}</option>`).join('');
+
+    return `<div class="grid cols2">
+        <div class="card"><h2>🧑‍🏫 Votre staff</h2>${current}${bonuses}
+          <p class="muted" style="font-size:12px;margin-top:8px">Un meilleur staff améliore l'adresse (attaque/défense), le développement des jeunes et réduit les blessures.</p>
+        </div>
+        <div class="card"><h2>🏋️ Axe d'entraînement</h2>
+          <p class="muted" style="font-size:12.5px;margin-bottom:8px">Concentre le travail de l'intersaison sur un domaine : les jeunes de l'effectif y progresseront davantage.</p>
+          <select id="training-focus" style="width:100%">${focusOpts}</select>
+        </div>
+      </div>
+      <div class="card"><h2>💼 Marché du staff</h2></div>
+      <div class="grid cols2">${market}</div>`;
   },
 
   /* ------------------------------- Scouting ----------------------------- */
@@ -1013,18 +1055,22 @@ const UI = {
   resignStep() {
     const ut = Game.ut();
     const expiring = ut.roster.filter(p => (p.years||0) <= 0);
-    const rows = expiring.length ? expiring.map(p => `<tr>
-        <td class="name">${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</td>
+    const rows = expiring.length ? expiring.map(p => {
+      const rookie = p.draftedSeason && p.age <= 25;
+      const cap = maxSalary(p);
+      const est = Math.min(cap, rookie ? cap : contractValue(p.ovr, p.age));
+      return `<tr>
+        <td class="name">${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}${rookie ? ' <span class="pill win">rookie</span>' : ''}</td>
         <td>${p.age}</td>
-        <td>${contractValue(p.ovr,p.age)} M$ <small class="muted">estimé</small></td>
-        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" value="${contractValue(p.ovr,p.age)}" data-resign-sal="${p.id}"></td>
-        <td><select data-resign-yr="${p.id}"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></td>
-        <td><button class="btn green sm" data-resign="${p.id}">Prolonger</button>
+        <td>${contractValue(p.ovr,p.age)} <small class="muted">/ max ${cap}</small></td>
+        <td><input class="mins" style="width:66px" type="number" step="0.5" min="${MIN_SALARY}" max="${cap}" value="${est}" data-resign-sal="${p.id}"></td>
+        <td><select data-resign-yr="${p.id}"><option>1</option><option ${rookie?'':'selected'}>2</option><option>3</option><option ${rookie?'selected':''}>4</option></select></td>
+        <td><button class="btn green sm" data-resign="${p.id}">${rookie ? 'Extension rookie' : 'Prolonger'}</button>
             <button class="btn red sm" data-let-go="${p.id}">Laisser partir</button></td>
-      </tr>`).join('') : '<tr><td colspan="6" class="muted center">Aucun contrat expirant — tous vos joueurs sont sous contrat.</td></tr>';
+      </tr>`; }).join('') : '<tr><td colspan="6" class="muted center">Aucun contrat expirant — tous vos joueurs sont sous contrat.</td></tr>';
     return `<div class="card"><h2>Contrats expirants</h2>
-      <p class="muted" style="margin-bottom:10px">Prolongez vos joueurs clés avant qu'ils ne deviennent agents libres.</p>
-      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Valeur</th><th>Salaire/an</th><th>Durée</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted" style="margin-bottom:10px">Prolongez vos joueurs clés avant qu'ils ne deviennent agents libres. Les <b>rookies</b> peuvent recevoir une <b>extension</b> (contrat max autorisé selon l'ancienneté).</p>
+      <div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Âge</th><th>Valeur / Max</th><th>Salaire/an</th><th>Durée</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row end" style="margin-top:12px"><button class="btn primary" data-act="to-draft">Passer à la Draft →</button></div>
     </div>`;
   },
@@ -1189,6 +1235,9 @@ const UI = {
     m.querySelectorAll('[data-scout]').forEach(b=>b.addEventListener('click',()=>{
       const r=Game.scoutProspect(this._scoutYear,+b.dataset.scout); if(r&&r.err)this.toast(r.err); this.render();}));
     m.querySelectorAll('[data-scout-year]').forEach(b=>b.addEventListener('click',()=>{this._scoutYear=+b.dataset.scoutYear;this.render();}));
+    // staff : embauche + entraînement
+    m.querySelectorAll('[data-hire]').forEach(b=>b.addEventListener('click',()=>{const [role,i]=b.dataset.hire.split(':');Game.hireStaff(role,+i);this.toast('Staff embauché');this.render();}));
+    const tf=this.el('training-focus'); if(tf)tf.addEventListener('change',()=>{Game.setTrainingFocus(tf.value);this.toast('Axe d\'entraînement : '+TRAINING_FOCUS[tf.value].name);});
 
     // historique : sous-onglets, carrières de légendes
     m.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>{this._histSub=b.dataset.hist;this.render();}));

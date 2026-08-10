@@ -122,6 +122,25 @@ function careerTotals(history) {
   T.ppg = T.gp ? T.pts / T.gp : 0; T.rpg = T.gp ? T.reb / T.gp : 0; T.apg = T.gp ? T.ast / T.gp : 0;
   return T;
 }
+// Franchise principale d'un joueur (là où il a joué le plus de saisons)
+function primaryTeam(history, fallback) {
+  const c = {};
+  (history || []).forEach(h => { if (h.team) c[h.team] = (c[h.team] || 0) + 1; });
+  const best = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+  return best ? best[0] : fallback;
+}
+function nameHash(name) { let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return h; }
+// Retire un numéro pour une franchise (numéro unique, pseudo-déterministe)
+function retireNumber(gameState, teamId, name) {
+  gameState.retiredNumbers = gameState.retiredNumbers || {};
+  const arr = gameState.retiredNumbers[teamId] || (gameState.retiredNumbers[teamId] = []);
+  if (arr.some(x => x.name === name)) return;
+  const used = new Set(arr.map(x => x.number));
+  let num = nameHash(name) % 60, guard = 0;
+  while (used.has(num) && guard++ < 120) num = (num + 1) % 100;
+  arr.push({ name, number: num, season: gameState.season });
+}
+
 // Un joueur est-il éligible au Hall of Fame ?
 function hofEligible(awards, peakOvr, totals) {
   const mvps = awards.filter(a => a.label === 'MVP').length;
@@ -813,13 +832,18 @@ function ageAndDevelop(gameState) {
       if (retire) {
         retired.push({ team: team.id, name: p.name, age: p.age });
         const totals = careerTotals(p.history);
-        gameState.legends.unshift({
+        const hof = hofEligible(p.awards || [], p.peakOvr || p.ovr, totals);
+        const primary = primaryTeam(p.history, team.id);
+        const legend = {
           name: p.name, pos: p.pos, peakOvr: p.peakOvr || p.ovr,
           awards: (p.awards || []).slice(), history: p.history.slice(),
           teamsPlayed: (p.teamsPlayed || [team.id]).slice(),
           lastTeam: team.id, retiredSeason: gameState.season, retiredAge: p.age,
-          totals, hof: hofEligible(p.awards || [], p.peakOvr || p.ovr, totals),
-        });
+          totals, hof, retiredBy: null,
+        };
+        // Numéro retiré si Hall of Famer avec une carrière suffisante
+        if (hof && totals.seasons >= 4) { retireNumber(gameState, primary, p.name); legend.retiredBy = primary; }
+        gameState.legends.unshift(legend);
       }
       return !retire;
     });

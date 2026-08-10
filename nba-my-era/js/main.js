@@ -38,10 +38,60 @@ const Game = {
       history: [],                 // archive des saisons (champions, résultats, leaders, récompenses)
       legends: [],                 // joueurs retraités (carrières + Hall of Fame)
       franchiseStats: {},          // bilan/titres cumulés par franchise
+      retiredNumbers: {},          // numéros retirés par franchise
+      board: { patience: 60 },     // direction : objectif & patience
+      fired: false,
       scouting: { points: 12, classes },
     };
     this.log(`Bienvenue à la tête des ${this.userTeamFull().name} ! (${era ? era.name : 'Époque moderne'})`);
+    this.setBoardGoal();
     this.save();
+  },
+
+  /* --------------------------- Direction (board) ------------------------ */
+  setBoardGoal() {
+    const s = this.state; const ut = this.ut(); const ovr = teamOverall(ut);
+    let goal, targetWins, desc;
+    if (ovr >= 88) { goal = 'Titre NBA'; targetWins = 52; desc = 'La direction vise le titre. Rien d\'autre ne suffira.'; }
+    else if (ovr >= 84) { goal = 'Finale de conférence'; targetWins = 48; desc = 'Un parcours profond en playoffs est attendu.'; }
+    else if (ovr >= 80) { goal = 'Playoffs'; targetWins = 44; desc = 'La qualification en playoffs est exigée.'; }
+    else if (ovr >= 75) { goal = 'Lutter pour les playoffs'; targetWins = 36; desc = 'Se battre pour une place (barrage acceptable).'; }
+    else { goal = 'Développement'; targetWins = 26; desc = 'Faire progresser les jeunes et bâtir l\'avenir.'; }
+    s.board = s.board || { patience: 60 };
+    s.board.goal = goal; s.board.targetWins = targetWins; s.board.desc = desc;
+    s.board.seasonSet = s.season; s.board.result = null;
+  },
+  evaluateBoard(userResult) {
+    const s = this.state; const b = s.board; if (!b) return;
+    const ut = this.ut(); const wins = ut.w;
+    const rank = { 'Champion': 5, 'Finaliste': 4, 'Playoffs': 3, 'Non qualifié': 1 }[userResult] || 1;
+    const goalRank = { 'Titre NBA': 5, 'Finale de conférence': 4, 'Playoffs': 3, 'Lutter pour les playoffs': 2, 'Développement': 1 }[b.goal] || 3;
+    let met, delta, note;
+    if (rank >= goalRank || wins >= b.targetWins) { met = true; delta = rank > goalRank ? 20 : 15; note = 'Objectif atteint 👍'; }
+    else if (rank >= goalRank - 1 && wins >= b.targetWins - 8) { met = false; delta = -5; note = 'Objectif manqué de peu.'; }
+    else { met = false; delta = -16; note = 'Objectif non atteint 👎'; }
+    b.patience = clamp((b.patience || 60) + delta, 0, 100);
+    b.result = { met, note, userResult, wins };
+    this.log(`Direction : ${note} (patience ${Math.round(b.patience)}/100).`);
+    if (met && s.fired) { s.fired = false; this.log('La direction vous renouvelle sa confiance.'); }
+    else if (b.patience <= 0 && !s.fired) { s.fired = true; this.log('⚠️ La direction vous a démis de vos fonctions.'); }
+  },
+  boardReprieve() { this.state.fired = false; this.state.board.patience = 45; this.log('La direction vous accorde un sursis.'); this.save(); },
+
+  /* ----------------------------- Récits / storylines -------------------- */
+  generateStorylines() {
+    const s = this.state; const ut = this.ut();
+    ut.roster.forEach(p => {
+      if (p.stats.gp >= 15) {
+        const ppg = p.stats.pts / p.stats.gp;
+        if (p.age <= 23 && ppg >= 22 && !p._breakout) { p._breakout = true; this.log(`⭐ ${p.name} (${p.age} ans) éclôt : ${Math.round(ppg)} pts/m — une future star !`); }
+      }
+      const career = careerTotals(p.history).pts + (p.stats ? p.stats.pts : 0);
+      p._milestones = p._milestones || [];
+      [5000, 10000, 15000, 20000, 25000, 30000, 38000].forEach(m => {
+        if (career >= m && !p._milestones.includes(m)) { p._milestones.push(m); this.log(`🏀 ${p.name} franchit les ${m.toLocaleString('fr-FR')} points en carrière.`); }
+      });
+    });
   },
 
   /* -------------------------------- Accès ------------------------------- */
@@ -117,6 +167,7 @@ const Game = {
       if (tid === s.userTeam) newInj.forEach(n => this.log(`🏥 ${n.name} blessé (${n.desc}) — absent ~${n.games} matchs.`));
     });
     s.dayIndex++;
+    if (s.dayIndex % 10 === 0) this.generateStorylines();
     // proposition de transfert IA de temps en temps
     if (!s.pendingTrade) {
       const offer = aiConsiderTrade(s);
@@ -375,12 +426,17 @@ const Game = {
       if (aw.winners.mvp) this.log(`🏅 MVP ${s.season} : ${aw.winners.mvp.p.name} (${teamById(aw.winners.mvp.team).name}).`);
     }
 
+    // Évaluation de la direction (objectif de saison)
+    this.evaluateBoard(userResult);
+
     s.history.unshift({
       season: s.season, era: s.eraId,
       champion: champ, runnerUp,
       userTeam: s.userTeam, userW: ut.w, userL: ut.l, userResult,
       leader,
       awards: aw.pack || null,
+      boardGoal: s.board ? s.board.goal : null,
+      boardMet: s.board && s.board.result ? s.board.result.met : null,
     });
 
     // Histoire des franchises : bilan cumulé, titres, finales, meilleure saison
@@ -470,7 +526,8 @@ const Game = {
     s.scouting.points = 12;
     // reset bilans
     Object.values(s.teams).forEach(t => { t.w = 0; t.l = 0; t.streak = 0; t.ptsFor = 0; t.ptsAgn = 0; });
-    this.log(`Début de la saison ${s.season}.`);
+    this.setBoardGoal();     // nouvel objectif de la direction
+    this.log(`Début de la saison ${s.season}. Objectif : ${s.board.goal}.`);
     this.save();
   },
 

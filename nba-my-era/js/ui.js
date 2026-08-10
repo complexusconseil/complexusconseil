@@ -177,6 +177,18 @@ const UI = {
     // proposition de transfert IA en attente
     if (Game.state.pendingTrade && !this._tradeShown) { this._tradeShown = true; this.showPendingTrade(); }
     if (!Game.state.pendingTrade) this._tradeShown = false;
+    // limogeage par la direction
+    if (Game.state.fired && !this._firedShown) { this._firedShown = true; this.firedModal(); }
+    if (!Game.state.fired) this._firedShown = false;
+  },
+
+  firedModal() {
+    this.modal(`<h2 style="color:var(--red)">⚠️ Vous avez été limogé</h2>
+      <p>La direction a perdu confiance après des objectifs non atteints. Le propriétaire vous propose toutefois un dernier sursis pour redresser la barre.</p>
+      <div class="row end" style="margin-top:12px">
+        <button class="btn ghost" onclick="UI.closeModal();UI.render()">Voir la situation</button>
+        <button class="btn primary" onclick="Game.boardReprieve();UI.closeModal();UI.render();UI.toast('Sursis accordé')">Accepter un sursis</button>
+      </div>`);
   },
 
   renderTab() {
@@ -215,9 +227,34 @@ const UI = {
     const leaders = [...ut.roster].filter(p=>p.stats.gp>0).sort((a,b)=>this.avg(b.stats,'pts')-this.avg(a.stats,'pts')).slice(0,3);
     const news = s.news.slice(0, 6).map(n => `<div class="kv"><span>${n.msg}</span><span class="muted">${n.s}</span></div>`).join('') || '<div class="muted">—</div>';
 
+    // Carte Direction (objectif du board + patience)
+    const b = s.board || {};
+    const pat = Math.round(b.patience || 0);
+    const patColor = pat >= 60 ? 'var(--green)' : pat >= 30 ? 'var(--accent)' : 'var(--red)';
+    const lastRes = b.result ? `<div class="kv"><span>Saison passée</span><span class="v" style="color:${b.result.met?'var(--green)':'var(--red)'}">${b.result.note}</span></div>` : '';
+    const firedBanner = s.fired ? `<div class="card" style="border-color:var(--red)"><h2 style="color:var(--red)">⚠️ Vous avez été limogé</h2>
+        <p class="muted">La direction a perdu patience. Le propriétaire peut vous accorder un dernier sursis.</p>
+        <div class="row"><button class="btn primary" data-act="reprieve">Accepter un sursis</button>
+          <button class="btn ghost" onclick="UI.menuModal()">Menu</button></div></div>` : '';
+
     return `
+      ${firedBanner}
+      <div class="card"><h2>🏛️ Direction — Objectif de la saison</h2>
+        <div class="grid cols2">
+          <div>
+            <div class="kv"><span>Attente du board</span><span class="v">${b.goal || '—'}</span></div>
+            <div class="kv"><span>Cible de victoires</span><span class="v">${b.targetWins || '—'}</span></div>
+            <div class="muted" style="font-size:12.5px;margin-top:6px">${b.desc || ''}</div>
+          </div>
+          <div>
+            <div class="row" style="justify-content:space-between"><span class="muted">Patience de la direction</span><b style="color:${patColor}">${pat}/100</b></div>
+            <div class="progress" style="margin-top:6px"><div style="width:${pat}%;background:${patColor}"></div></div>
+            ${lastRes}
+          </div>
+        </div>
+      </div>
       <div class="grid cols3">
-        <div class="card"><h3>Classement ${CONFS[t.conf]}</h3>
+        <div class="card"><h3>Classement ${s.confMode==='single'?'ligue':CONFS[t.conf]}</h3>
           <div class="big">${rank}<small class="muted" style="font-size:16px">e</small></div>
           <div class="muted">Bilan ${ut.w}-${ut.l} · ${played?this.fmt(ut.w/played*100,0):0}% victoires</div>
         </div>
@@ -572,10 +609,11 @@ const UI = {
     const sub = this._histSub || 'seasons';
     this._histSub = sub;
     const nav = [['seasons', '📅 Saisons'], ['franchises', '🏙️ Franchises'], ['legends', '👑 Légendes'],
-                 ['records', '📈 Records'], ['exhibition', '⚔️ Finales All-Time']]
+                 ['records', '📈 Records'], ['dynasties', '🏰 Dynasties'], ['exhibition', '⚔️ Finales All-Time']]
       .map(([k, l]) => `<button class="btn ${k === sub ? 'primary' : 'ghost'} sm" data-hist="${k}">${l}</button>`).join(' ');
     const body = { seasons: () => this.histSeasons(), franchises: () => this.histFranchises(),
-      legends: () => this.histLegends(), records: () => this.histRecords(), exhibition: () => this.histExhibition() }[sub]();
+      legends: () => this.histLegends(), records: () => this.histRecords(),
+      dynasties: () => this.histDynasties(), exhibition: () => this.histExhibition() }[sub]();
     return `<div class="card"><div class="row" style="flex-wrap:wrap">${nav}</div></div>${body}`;
   },
 
@@ -627,14 +665,70 @@ const UI = {
     if (!ids.length) return `<div class="card center"><h2>Aucune histoire de franchise</h2><p class="muted">Terminez au moins une saison pour bâtir le livre des records.</p></div>`;
     const rows = ids.map(id => ({ id, ...s.franchiseStats[id] }))
       .sort((a, b) => b.titles - a.titles || (b.w) - (a.w))
-      .map(f => `<tr>
+      .map(f => { const rn = (s.retiredNumbers && s.retiredNumbers[f.id]) ? s.retiredNumbers[f.id].length : 0;
+        return `<tr data-franchise="${f.id}" style="cursor:pointer">
         <td class="name">${this.badge(f.id,20)} ${teamById(f.id).city} ${teamById(f.id).name}</td>
         <td><b>${f.titles}</b> 🏆</td><td>${f.finals}</td>
         <td>${f.w}-${f.l}</td><td>${(f.w+f.l)?this.fmt(f.w/(f.w+f.l)*100,0):0}%</td>
-        <td>${f.bestW ? `${f.bestW} V (${f.bestYear})` : '—'}</td><td>${f.mvps}</td>
-      </tr>`).join('');
+        <td>${f.bestW ? `${f.bestW} V (${f.bestYear})` : '—'}</td><td>${f.mvps}</td><td>${rn ? rn + ' 🎽' : '—'}</td>
+      </tr>`; }).join('');
     return `<div class="card"><h2>🏙️ Livre des records des franchises</h2>
-      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Finales</th><th>Bilan all-time</th><th>%</th><th>Meilleure saison</th><th>MVP</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      <p class="muted" style="font-size:12px;margin-bottom:6px">Cliquez une franchise pour son détail (titres, numéros retirés…).</p>
+      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Finales</th><th>Bilan all-time</th><th>%</th><th>Meilleure saison</th><th>MVP</th><th>N° retirés</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  },
+
+  franchiseModal(id) {
+    const s = Game.state; const f = s.franchiseStats[id] || {};
+    const t = teamById(id);
+    const champYears = (s.history || []).filter(h => h.champion === id).map(h => h.season).sort((a, b) => a - b);
+    const rn = (s.retiredNumbers && s.retiredNumbers[id]) || [];
+    const rnHtml = rn.length ? rn.sort((a, b) => a.number - b.number).map(x =>
+      `<span class="pill" style="background:${t.c1};color:#fff;margin:2px">#${x.number} ${x.name}</span>`).join(' ') : '<span class="muted">Aucun numéro retiré.</span>';
+    // MVP issus de cette franchise (via historique)
+    const mvps = (s.history || []).filter(h => h.awards && h.awards.mvp && h.awards.mvp.team === id)
+      .map(h => `${h.awards.mvp.name} (${h.season})`);
+    this.modal(`<button class="close" onclick="UI.closeModal()">✕</button>
+      <h2>${this.badge(id,36)} ${t.city} ${t.name}</h2>
+      <div class="grid cols2" style="margin-top:10px">
+        <div><div class="kv"><span>Titres</span><span class="v">${f.titles || 0} 🏆</span></div>
+          <div class="kv"><span>Finales</span><span class="v">${f.finals || 0}</span></div>
+          <div class="kv"><span>Bilan all-time</span><span class="v">${f.w || 0}-${f.l || 0}</span></div>
+          <div class="kv"><span>Meilleure saison</span><span class="v">${f.bestW ? f.bestW + ' V (' + f.bestYear + ')' : '—'}</span></div></div>
+        <div><div class="kv"><span>Années de titre</span><span class="v">${champYears.length ? champYears.join(', ') : '—'}</span></div>
+          <div class="kv"><span>MVP de la franchise</span><span class="v" style="font-size:12px">${mvps.length ? mvps.join(', ') : '—'}</span></div></div>
+      </div>
+      <h3>🎽 Numéros retirés</h3><div>${rnHtml}</div>`);
+  },
+
+  /* ------------------------------ Dynasties ----------------------------- */
+  histDynasties() {
+    const s = Game.state;
+    const hist = [...(s.history || [])].sort((a, b) => a.season - b.season);
+    if (!hist.length) return `<div class="card center"><h2>🏰 Pas encore d'histoire</h2><p class="muted">Les dynasties se dessineront au fil des titres.</p></div>`;
+    // Frise chronologique des champions
+    const frieze = hist.map(h => `<div style="text-align:center;flex:0 0 auto">${this.badge(h.champion,30)}<div class="muted" style="font-size:10px">${h.season}</div></div>`).join('');
+    // Séries consécutives (runs) & total titres
+    const runs = []; let cur = null;
+    hist.forEach(h => {
+      if (cur && cur.id === h.champion) { cur.end = h.season; cur.count++; }
+      else { cur = { id: h.champion, start: h.season, end: h.season, count: 1 }; runs.push(cur); }
+    });
+    const dynasties = runs.filter(r => r.count >= 2).sort((a, b) => b.count - a.count);
+    const counts = {}; hist.forEach(h => counts[h.champion] = (counts[h.champion] || 0) + 1);
+    const titleRank = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+    const dynHtml = dynasties.length ? dynasties.map(r =>
+      `<div class="kv"><span>${this.badge(r.id,20)} ${teamById(r.id).city} ${teamById(r.id).name}</span>
+        <span class="v">${r.count} titres consécutifs (${r.start}${r.end !== r.start ? '–' + r.end : ''})</span></div>`).join('')
+      : '<div class="muted">Aucune dynastie (2+ titres d\'affilée) pour l\'instant.</div>';
+    const rankHtml = titleRank.map(([id, c]) => `<div class="kv"><span>${this.badge(id,20)} ${teamById(id).name}</span><span class="v">${c} 🏆</span></div>`).join('');
+
+    return `<div class="card"><h2>🏰 Frise des champions</h2>
+        <div class="row" style="gap:10px;overflow-x:auto;padding:8px 0">${frieze}</div></div>
+      <div class="grid cols2">
+        <div class="card"><h2>👑 Dynasties (titres consécutifs)</h2>${dynHtml}</div>
+        <div class="card"><h2>🏆 Total titres par franchise</h2>${rankHtml}</div>
+      </div>`;
   },
 
   /* ---------------------- Légendes / Hall of Fame ----------------------- */
@@ -1099,6 +1193,7 @@ const UI = {
     // historique : sous-onglets, carrières de légendes
     m.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>{this._histSub=b.dataset.hist;this.render();}));
     m.querySelectorAll('[data-legend]').forEach(b=>b.addEventListener('click',()=>this.legendModal(+b.dataset.legend)));
+    m.querySelectorAll('[data-franchise]').forEach(b=>b.addEventListener('click',()=>this.franchiseModal(b.dataset.franchise)));
     // finales all-time : sélecteurs
     const exEA=this.el('ex-eraA'); if(exEA)exEA.addEventListener('change',()=>{this._exEraA=exEA.value;this._exTeamA=null;this.render();});
     const exEB=this.el('ex-eraB'); if(exEB)exEB.addEventListener('change',()=>{this._exEraB=exEB.value;this._exTeamB=null;this.render();});
@@ -1129,6 +1224,7 @@ const UI = {
       // priorités
       case 'prio-add': { const sel=this.el('prio-add'); if(sel&&sel.value){Game.addPriority(+sel.value);this.render();} break; }
       case 'prio-reset': Game.resetPriorities(); R(); break;
+      case 'reprieve': Game.boardReprieve(); R(); break;
       // finales all-time
       case 'run-exhib': {
         const out = Game.runExhibition(this._exEraA||'modern', this._exTeamA, this._exEraB||'e1996', this._exTeamB);

@@ -29,6 +29,10 @@ Aucune installation, aucun serveur, aucune connexion internet requise.
 - **Carrières & Panthéon** — carrière complète saison par saison de chaque joueur (totaux, moyennes, distinctions), **Hall of Fame** et registre des retraités (carrière consultable).
 - **Livre des records** — histoire de chaque **franchise** (titres, finales, bilan all-time, meilleure saison, MVP), et **records de la ligue** (meneurs de points/rebonds/passes en carrière, meilleures saisons individuelles, titres par franchise).
 - **Finales All-Time** — confrontez deux équipes de **n'importe quelle époque** (ex. Bulls 1996 vs Warriors 2016) au meilleur des 7 sur terrain neutre, avec MVP des finales.
+- **Objectifs de la direction** — chaque saison, le board fixe une **attente** (titre, playoffs, développement…) selon la force de l'effectif ; réussir renforce sa confiance, échouer l'érode — jusqu'au **limogeage** (avec possibilité de sursis).
+- **Numéros retirés** — les Hall of Famers voient leur **maillot retiré** par leur franchise principale (détail dans la fiche de chaque franchise).
+- **Récits & jalons** — actualités narratives : **éclosion** de jeunes stars, **paliers de points** en carrière (10k, 20k…).
+- **Frise des dynasties** — chronologie des champions et détection des **dynasties** (titres consécutifs), classement des titres par franchise.
 - **Époques historiques** — démarrez à différentes **époques de la NBA** (années 60 « Russell & Wilt », 80 « Magic vs Bird », 90 « ère Jordan », 2010 « Warriors & LeBron », ou moderne), avec des **effectifs de légendes** et des **règles adaptées** (ligne à 3 points absente en 1968, rythme et fréquence du tir extérieur variables selon l'époque).
 - **Playoffs** — top 8 par conférence, séries au meilleur des 7, jusqu'aux Finales NBA. Jouez votre série match par match.
 - **Intersaison** — prolongations de contrat, **draft** (60 prospects, ordre inversé au classement), **agents libres**.

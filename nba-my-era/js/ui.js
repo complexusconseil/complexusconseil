@@ -759,11 +759,13 @@ const UI = {
     const sub = this._histSub || 'seasons';
     this._histSub = sub;
     const nav = [['seasons', '📅 Saisons'], ['franchises', '🏙️ Franchises'], ['legends', '👑 Légendes'],
-                 ['records', '📈 Records'], ['dynasties', '🏰 Dynasties'], ['exhibition', '⚔️ Finales All-Time']]
+                 ['records', '📈 Records'], ['dynasties', '🏰 Dynasties'], ['exhibition', '⚔️ Finales All-Time'],
+                 ['international', '🌍 International']]
       .map(([k, l]) => `<button class="btn ${k === sub ? 'primary' : 'ghost'} sm" data-hist="${k}">${l}</button>`).join(' ');
     const body = { seasons: () => this.histSeasons(), franchises: () => this.histFranchises(),
       legends: () => this.histLegends(), records: () => this.histRecords(),
-      dynasties: () => this.histDynasties(), exhibition: () => this.histExhibition() }[sub]();
+      dynasties: () => this.histDynasties(), exhibition: () => this.histExhibition(),
+      international: () => this.histInternational() }[sub]();
     return `<div class="card"><div class="row" style="flex-wrap:wrap">${nav}</div></div>${body}`;
   },
 
@@ -979,6 +981,46 @@ const UI = {
         <p class="muted" style="margin-bottom:10px">Confrontez deux équipes de n'importe quelle époque au meilleur des 7 (terrain neutre, hors partie en cours).</p>
         <div class="grid cols2">${side('Équipe A', 'ex-eraA', 'ex-teamA', eas, ta)}${side('Équipe B', 'ex-eraB', 'ex-teamB', ebs, tb)}</div>
         <div class="row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-act="run-exhib">🏀 Simuler la série (Bo7)</button></div>
+      </div>${result}`;
+  },
+
+  /* --------------------------- International ---------------------------- */
+  natLabel(id) { const n = NATIONS[id] || { flag: '', name: id }; return `${n.flag} ${n.name}`; },
+  histInternational() {
+    if (typeof INT_COMPS === 'undefined') return `<div class="card center"><h2>Indisponible</h2></div>`;
+    const comp = this._intlComp && INT_COMPS[this._intlComp] ? this._intlComp : 'eurobasket';
+    this._intlComp = comp;
+    const nations = INT_COMPS[comp].nations;
+    const nation = (this._intlNation && nations.includes(this._intlNation)) ? this._intlNation : nations[0];
+    this._intlNation = nation;
+    const compOpts = Object.entries(INT_COMPS).map(([k, v]) => `<option value="${k}" ${k === comp ? 'selected' : ''}>${v.flag} ${v.name}</option>`).join('');
+    const natOpts = nations.map(id => `<option value="${id}" ${id === nation ? 'selected' : ''}>${this.natLabel(id)}</option>`).join('');
+
+    const tro = (Game.state.intlTrophies || []);
+    const troHtml = tro.length ? tro.map(t => `<span class="pill win">${(INT_COMPS[t.comp] || {}).flag || '🏆'} ${(INT_COMPS[t.comp] || {}).name || t.comp} — ${this.natLabel(t.nation)} (${t.season})</span>`).join(' ') : '<span class="muted">Aucun titre international pour l\'instant.</span>';
+
+    let result = '';
+    const r = this._intlResult;
+    if (r && r.bracket) {
+      const roundName = ['Quarts', 'Demies', 'Finale'];
+      const cell = m => `<div class="series"><div class="s-row ${m.winner === m.a ? 'won' : ''}"><span>${this.natLabel(m.a)}</span><b>${m.as}</b></div>
+        <div class="s-row ${m.winner === m.b ? 'won' : ''}"><span>${this.natLabel(m.b)}</span><b>${m.bs}</b></div></div>`;
+      const cols = r.bracket.rounds.map((rd, i) => `<div class="round"><h3>${roundName[i]}</h3>${rd.map(cell).join('')}</div>`).join('');
+      const champWin = r.userNation && r.bracket.champion === r.userNation;
+      result = `<div class="card"><h2>🏆 ${this.natLabel(r.bracket.champion)} — Champion ${(INT_COMPS[r.comp] || {}).name || ''}</h2>
+        ${champWin ? '<p style="color:var(--green);font-weight:700">Félicitations, votre sélection est sacrée !</p>' : ''}
+        ${r.bracket.mvp ? `<p class="muted">🏅 MVP du tournoi : <b>${r.bracket.mvp.name}</b> (${r.bracket.mvp.pts} pts)</p>` : ''}
+        <div class="bracket">${cols}</div></div>`;
+    }
+
+    return `<div class="card"><h2>🌍 Compétitions internationales</h2>
+        <p class="muted" style="font-size:12.5px;margin-bottom:8px">Choisissez une compétition et votre sélection, puis disputez le tournoi à élimination directe (8 nations). Best-effort sur les rosters nationaux.</p>
+        <div class="row" style="flex-wrap:wrap">
+          <div><div class="muted" style="font-size:12px">Compétition</div><select id="intl-comp">${compOpts}</select></div>
+          <div><div class="muted" style="font-size:12px">Votre sélection</div><select id="intl-nation">${natOpts}</select></div>
+          <button class="btn primary" data-act="run-intl" style="align-self:flex-end">🏀 Disputer le tournoi</button>
+        </div>
+        <h3>Palmarès international</h3><div>${troHtml}</div>
       </div>${result}`;
   },
 
@@ -1388,6 +1430,9 @@ const UI = {
     m.querySelectorAll('[data-hist]').forEach(b=>b.addEventListener('click',()=>{this._histSub=b.dataset.hist;this.render();}));
     m.querySelectorAll('[data-legend]').forEach(b=>b.addEventListener('click',()=>this.legendModal(+b.dataset.legend)));
     m.querySelectorAll('[data-franchise]').forEach(b=>b.addEventListener('click',()=>this.franchiseModal(b.dataset.franchise)));
+    // international
+    const ic=this.el('intl-comp'); if(ic)ic.addEventListener('change',()=>{this._intlComp=ic.value;this._intlNation=null;this.render();});
+    const inat=this.el('intl-nation'); if(inat)inat.addEventListener('change',()=>{this._intlNation=inat.value;});
     // finales all-time : sélecteurs
     const exEA=this.el('ex-eraA'); if(exEA)exEA.addEventListener('change',()=>{this._exEraA=exEA.value;this._exTeamA=null;this.render();});
     const exEB=this.el('ex-eraB'); if(exEB)exEB.addEventListener('change',()=>{this._exEraB=exEB.value;this._exTeamB=null;this.render();});
@@ -1425,6 +1470,13 @@ const UI = {
         const out = Game.runExhibition(this._exEraA||'modern', this._exTeamA, this._exEraB||'e1996', this._exTeamB);
         if (out && out.err) { this.toast(out.err); break; }
         this._exResult = out; R(); break;
+      }
+      case 'run-intl': {
+        const out = Game.runInternational(this._intlComp||'eurobasket', this._intlNation);
+        if (out && out.err) { this.toast(out.err); break; }
+        this._intlResult = out;
+        this.toast(out.bracket.champion===out.userNation?'🥇 Vous êtes champions !':`${this.natLabel(out.bracket.champion)} champion`);
+        R(); break;
       }
       // playoffs
       case 'po-playgame': {

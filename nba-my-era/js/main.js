@@ -44,6 +44,7 @@ const Game = {
       staff: defaultStaff(),       // staff technique de l'utilisateur
       staffMarket: genStaffMarket(),
       trainingFocus: 'none',       // axe d'entraînement de la saison
+      intlTrophies: [],            // titres internationaux (sélections)
       scouting: { points: 12, classes },
     };
     applyUserStaff(this.ut(), this.state.staff);
@@ -501,6 +502,47 @@ const Game = {
     A.eraId = eraA; B.eraId = eraB;
     const res = simExhibitionSeries(A, B);
     return { ok: true, res, A, B, eraA, eraB };
+  },
+
+  /* --------------------- Tournois internationaux ------------------------ */
+  buildNationalTeam(nationId) {
+    const nat = (typeof NATIONS !== 'undefined') ? NATIONS[nationId] : null;
+    if (!nat) return null;
+    const roster = nat.players.map(makePlayerReal);
+    const team = { id: nationId, roster, lineup: autoLineup(roster), minutes: {},
+      offScheme: suggestOffScheme(roster), defScheme: suggestDefScheme(roster),
+      coachOff: 78, coachDef: 78, coachDev: 78, coachHealth: 78, w: 0, l: 0 };
+    autoMinutes(team); team.priorities = autoPriorities(team);
+    return team;
+  },
+  runInternational(compId, userNationId) {
+    const comp = (typeof INT_COMPS !== 'undefined') ? INT_COMPS[compId] : null;
+    if (!comp) return { err: 'Compétition inconnue.' };
+    const teams = {}; comp.nations.forEach(id => teams[id] = this.buildNationalTeam(id));
+    const seeds = [...comp.nations].sort((a, b) => teamOverall(teams[b]) - teamOverall(teams[a]));
+    const scorers = {};
+    const saved = ERA_RULES; ERA_RULES = { threePA: 0.8, pace: 0.92, fgAdj: 0, confMode: 'single' };
+    const simMatch = (a, b) => {
+      const res = simGame(teams[a], teams[b]);
+      const as = res.home.score, bs = res.away.score;
+      res.home.box.forEach(x => scorers[x.p.name] = (scorers[x.p.name] || 0) + x.s.pts);
+      res.away.box.forEach(x => scorers[x.p.name] = (scorers[x.p.name] || 0) + x.s.pts);
+      return { a, b, as, bs, winner: as >= bs ? a : b };
+    };
+    const qfPairs = [[0, 7], [3, 4], [2, 5], [1, 6]].map(([i, j]) => [seeds[i], seeds[j]]);
+    const qf = qfPairs.map(([a, b]) => simMatch(a, b));
+    const sf = [simMatch(qf[0].winner, qf[1].winner), simMatch(qf[2].winner, qf[3].winner)];
+    const fn = simMatch(sf[0].winner, sf[1].winner);
+    ERA_RULES = saved;
+    const mvpE = Object.entries(scorers).sort((x, y) => y[1] - x[1])[0];
+    const bracket = { rounds: [qf, sf, [fn]], champion: fn.winner, mvp: mvpE ? { name: mvpE[0], pts: mvpE[1] } : null };
+    if (userNationId && bracket.champion === userNationId) {
+      this.state.intlTrophies = this.state.intlTrophies || [];
+      this.state.intlTrophies.push({ comp: compId, nation: userNationId, season: this.state.season });
+      this.log(`🥇 ${NATIONS[userNationId].name} remporte ${comp.name} !`);
+      this.save();
+    }
+    return { ok: true, comp: compId, userNation: userNationId, bracket, seeds };
   },
 
   /* ------------------------------ Intersaison --------------------------- */

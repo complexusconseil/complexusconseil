@@ -61,6 +61,18 @@ const FIRST_NAMES = [
   'Luka','Nikola','Domantas','Bogdan','Goran','Dario','Vasilije','Deni','Jusuf','Alperen',
   'Giannis','Thanasis','Pascal','Serge','Joel','Clint','Bam','Myles','Jarrett','Robert',
 ];
+// Noms d'entraîneurs réels (best-effort) pour le staff technique
+const COACH_NAMES = [
+  'Erik Spoelstra', 'Steve Kerr', 'Gregg Popovich', 'Tyronn Lue', 'Rick Carlisle', 'Michael Malone',
+  'Nick Nurse', 'Taylor Jenkins', 'Jamahl Mosley', 'Willie Green', 'Chris Finch', 'Mark Daigneault',
+  'Ime Udoka', 'Joe Mazzulla', 'JJ Redick', 'Billy Donovan', 'Tom Thibodeau', 'Jason Kidd',
+  'Quin Snyder', 'Jacque Vaughn', 'Kenny Atkinson', 'Frank Vogel', 'Wes Unseld Jr.', 'J.B. Bickerstaff',
+  'Jordi Fernández', 'Charles Lee', 'Mike Brown', 'Doc Rivers', 'Monty Williams', 'Mike Budenholzer',
+  'Nate McMillan', 'David Adelman', 'Dwane Casey', 'Terry Stotts', 'Mike D\'Antoni', 'Alvin Gentry',
+  'Stan Van Gundy', 'George Karl', 'Lionel Hollins', 'Vinny Del Negro', 'Brian Shaw', 'Luke Walton',
+  'David Fizdale', 'Igor Kokoškov', 'Ettore Messina', 'Sam Cassell', 'Adrian Griffin', 'Darko Rajaković',
+];
+
 const LAST_NAMES = [
   'Carter','Robinson','Thompson','Bryant','Walker','Hayes','Coleman','Foster','Brooks','Reed',
   'Bennett','Morgan','Franklin','Sullivan','Freeman','Newton','Grant','Wallace','Bishop','Stone',

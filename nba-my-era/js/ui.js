@@ -813,43 +813,84 @@ const UI = {
   /* ---------------------- Historique des franchises --------------------- */
   histFranchises() {
     const s = Game.state;
-    const ids = Object.keys(s.franchiseStats);
-    if (!ids.length) return `<div class="card center"><h2>Aucune histoire de franchise</h2><p class="muted">Terminez au moins une saison pour bâtir le livre des records.</p></div>`;
-    const rows = ids.map(id => ({ id, ...s.franchiseStats[id] }))
-      .sort((a, b) => b.titles - a.titles || (b.w) - (a.w))
-      .map(f => { const rn = (s.retiredNumbers && s.retiredNumbers[f.id]) ? s.retiredNumbers[f.id].length : 0;
-        return `<tr data-franchise="${f.id}" style="cursor:pointer">
-        <td class="name">${this.badge(f.id,20)} ${teamById(f.id).city} ${teamById(f.id).name}</td>
-        <td><b>${f.titles}</b> 🏆</td><td>${f.finals}</td>
-        <td>${f.w}-${f.l}</td><td>${(f.w+f.l)?this.fmt(f.w/(f.w+f.l)*100,0):0}%</td>
-        <td>${f.bestW ? `${f.bestW} V (${f.bestYear})` : '—'}</td><td>${f.mvps}</td><td>${rn ? rn + ' 🎽' : '—'}</td>
-      </tr>`; }).join('');
-    return `<div class="card"><h2>🏙️ Livre des records des franchises</h2>
-      <p class="muted" style="font-size:12px;margin-bottom:6px">Cliquez une franchise pour son détail (titres, numéros retirés…).</p>
-      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Finales</th><th>Bilan all-time</th><th>%</th><th>Meilleure saison</th><th>MVP</th><th>N° retirés</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    const lore = (typeof FRANCHISE_LORE !== 'undefined') ? FRANCHISE_LORE : {};
+    // On liste TOUTES les franchises de la ligue active, avec leur histoire réelle
+    // (titres/palmarès) fusionnée avec les stats gagnées en jeu.
+    const league = (typeof LEAGUE !== 'undefined' && LEAGUE.length) ? LEAGUE : TEAMS;
+    const rows = league.map(t => {
+      const id = t.id;
+      const fs = (s.franchiseStats && s.franchiseStats[id]) || {};
+      const lo = lore[id] || {};
+      const realTitles = lo.titles || 0;
+      const gameTitles = fs.titles || 0;
+      const rn = (s.retiredNumbers && s.retiredNumbers[id]) ? s.retiredNumbers[id].length : 0;
+      return { id, realTitles, gameTitles, fs, lo, rn };
+    }).sort((a, b) => (b.realTitles + b.gameTitles) - (a.realTitles + a.gameTitles) || (b.fs.w || 0) - (a.fs.w || 0));
+    const trs = rows.map(f => {
+      const t = teamById(f.id);
+      const titleCell = f.gameTitles
+        ? `<b>${f.realTitles}</b> 🏆 <span class="muted">+${f.gameTitles} en jeu</span>`
+        : `<b>${f.realTitles}</b> 🏆`;
+      const bilan = (f.fs.w || f.fs.l) ? `${f.fs.w}-${f.fs.l}` : '—';
+      const legend = (f.lo.legends && f.lo.legends.length) ? f.lo.legends[0].replace(/ #\d+$/, '') : '—';
+      return `<tr data-franchise="${f.id}" style="cursor:pointer">
+        <td class="name">${this.badge(f.id,20)} ${t.city} ${t.name}</td>
+        <td>${titleCell}</td>
+        <td class="muted" style="font-size:12px">${legend}</td>
+        <td>${bilan}</td>
+        <td>${f.rn ? f.rn + ' 🎽' : '—'}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="card"><h2>🏙️ Histoire des franchises</h2>
+      <p class="muted" style="font-size:12px;margin-bottom:6px">Palmarès réel de la NBA fusionné avec vos exploits en carrière. Cliquez une franchise pour son détail complet.</p>
+      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Légende</th><th>Bilan (en jeu)</th><th>N° retirés</th></tr></thead><tbody>${trs}</tbody></table></div></div>`;
   },
 
   franchiseModal(id) {
-    const s = Game.state; const f = s.franchiseStats[id] || {};
+    const s = Game.state; const f = (s.franchiseStats && s.franchiseStats[id]) || {};
     const t = teamById(id);
+    const lore = ((typeof FRANCHISE_LORE !== 'undefined') && FRANCHISE_LORE[id]) || null;
     const champYears = (s.history || []).filter(h => h.champion === id).map(h => h.season).sort((a, b) => a - b);
     const rn = (s.retiredNumbers && s.retiredNumbers[id]) || [];
     const rnHtml = rn.length ? rn.sort((a, b) => a.number - b.number).map(x =>
-      `<span class="pill" style="background:${t.c1};color:#fff;margin:2px">#${x.number} ${x.name}</span>`).join(' ') : '<span class="muted">Aucun numéro retiré.</span>';
-    // MVP issus de cette franchise (via historique)
+      `<span class="pill" style="background:${t.c1};color:#fff;margin:2px">#${x.number} ${x.name}</span>`).join(' ') : '<span class="muted">Aucun numéro retiré en carrière.</span>';
+    // MVP issus de cette franchise (via historique en jeu)
     const mvps = (s.history || []).filter(h => h.awards && h.awards.mvp && h.awards.mvp.team === id)
       .map(h => `${h.awards.mvp.name} (${h.season})`);
+
+    // Section histoire réelle
+    let loreHtml = '';
+    if (lore) {
+      const yearsHtml = (lore.years && lore.years.length)
+        ? lore.years.map(y => `<span class="pill" style="background:${t.c2};color:#111;margin:2px;font-weight:700">${y}</span>`).join(' ')
+        : '<span class="muted">Aucun titre NBA.</span>';
+      const legHtml = (lore.legends && lore.legends.length)
+        ? lore.legends.map(l => {
+            const m = l.match(/^(.*?)\s+(#\d+)$/);
+            return m
+              ? `<span class="pill" style="background:${t.c1};color:#fff;margin:2px">${m[2]} ${m[1]}</span>`
+              : `<span class="pill" style="background:${t.c1};color:#fff;margin:2px">${l}</span>`;
+          }).join(' ')
+        : '<span class="muted">—</span>';
+      loreHtml = `<h3 style="margin-top:14px">📜 Histoire de la franchise</h3>
+        <div class="kv"><span>Titres NBA</span><span class="v">${lore.titles || 0} 🏆</span></div>
+        <div style="margin:6px 0"><div class="muted" style="font-size:12px;margin-bottom:3px">Saisons championnes</div>${yearsHtml}</div>
+        <div style="margin:6px 0"><div class="muted" style="font-size:12px;margin-bottom:3px">Légendes de la franchise</div>${legHtml}</div>`;
+    }
+
     this.modal(`<button class="close" onclick="UI.closeModal()">✕</button>
       <h2>${this.badge(id,36)} ${t.city} ${t.name}</h2>
-      <div class="grid cols2" style="margin-top:10px">
-        <div><div class="kv"><span>Titres</span><span class="v">${f.titles || 0} 🏆</span></div>
+      ${loreHtml}
+      <h3 style="margin-top:14px">📈 Votre ère (en jeu)</h3>
+      <div class="grid cols2" style="margin-top:6px">
+        <div><div class="kv"><span>Titres remportés</span><span class="v">${f.titles || 0} 🏆</span></div>
           <div class="kv"><span>Finales</span><span class="v">${f.finals || 0}</span></div>
           <div class="kv"><span>Bilan all-time</span><span class="v">${f.w || 0}-${f.l || 0}</span></div>
           <div class="kv"><span>Meilleure saison</span><span class="v">${f.bestW ? f.bestW + ' V (' + f.bestYear + ')' : '—'}</span></div></div>
         <div><div class="kv"><span>Années de titre</span><span class="v">${champYears.length ? champYears.join(', ') : '—'}</span></div>
           <div class="kv"><span>MVP de la franchise</span><span class="v" style="font-size:12px">${mvps.length ? mvps.join(', ') : '—'}</span></div></div>
       </div>
-      <h3>🎽 Numéros retirés</h3><div>${rnHtml}</div>`);
+      <h3 style="margin-top:14px">🎽 Numéros retirés (carrière)</h3><div>${rnHtml}</div>`);
   },
 
   /* ------------------------------ Dynasties ----------------------------- */
@@ -988,40 +1029,65 @@ const UI = {
   natLabel(id) { const n = NATIONS[id] || { flag: '', name: id }; return `${n.flag} ${n.name}`; },
   histInternational() {
     if (typeof INT_COMPS === 'undefined') return `<div class="card center"><h2>Indisponible</h2></div>`;
-    const comp = this._intlComp && INT_COMPS[this._intlComp] ? this._intlComp : 'eurobasket';
-    this._intlComp = comp;
-    const nations = INT_COMPS[comp].nations;
-    const nation = (this._intlNation && nations.includes(this._intlNation)) ? this._intlNation : nations[0];
-    this._intlNation = nation;
-    const compOpts = Object.entries(INT_COMPS).map(([k, v]) => `<option value="${k}" ${k === comp ? 'selected' : ''}>${v.flag} ${v.name}</option>`).join('');
-    const natOpts = nations.map(id => `<option value="${id}" ${id === nation ? 'selected' : ''}>${this.natLabel(id)}</option>`).join('');
-
-    const tro = (Game.state.intlTrophies || []);
+    const s = Game.state; const it = s.intl;
+    const tro = (s.intlTrophies || []);
     const troHtml = tro.length ? tro.map(t => `<span class="pill win">${(INT_COMPS[t.comp] || {}).flag || '🏆'} ${(INT_COMPS[t.comp] || {}).name || t.comp} — ${this.natLabel(t.nation)} (${t.season})</span>`).join(' ') : '<span class="muted">Aucun titre international pour l\'instant.</span>';
+    const palma = `<div class="card"><h3>Palmarès international</h3><div>${troHtml}</div></div>`;
 
-    let result = '';
-    const r = this._intlResult;
-    if (r && r.bracket) {
-      const roundName = ['Quarts', 'Demies', 'Finale'];
-      const cell = m => `<div class="series"><div class="s-row ${m.winner === m.a ? 'won' : ''}"><span>${this.natLabel(m.a)}</span><b>${m.as}</b></div>
-        <div class="s-row ${m.winner === m.b ? 'won' : ''}"><span>${this.natLabel(m.b)}</span><b>${m.bs}</b></div></div>`;
-      const cols = r.bracket.rounds.map((rd, i) => `<div class="round"><h3>${roundName[i]}</h3>${rd.map(cell).join('')}</div>`).join('');
-      const champWin = r.userNation && r.bracket.champion === r.userNation;
-      result = `<div class="card"><h2>🏆 ${this.natLabel(r.bracket.champion)} — Champion ${(INT_COMPS[r.comp] || {}).name || ''}</h2>
-        ${champWin ? '<p style="color:var(--green);font-weight:700">Félicitations, votre sélection est sacrée !</p>' : ''}
-        ${r.bracket.mvp ? `<p class="muted">🏅 MVP du tournoi : <b>${r.bracket.mvp.name}</b> (${r.bracket.mvp.pts} pts)</p>` : ''}
-        <div class="bracket">${cols}</div></div>`;
+    // Tournoi en cours
+    if (it) {
+      const roundName = ['Quarts de finale', 'Demi-finales', 'Finale'];
+      const cell = m => `<div class="series">
+        <div class="s-row ${m.played && m.winner === m.a ? 'won' : ''}"><span>${m.a === it.userNation ? '➤ ' : ''}${this.natLabel(m.a)}</span><b>${m.played ? m.as : '-'}</b></div>
+        <div class="s-row ${m.played && m.winner === m.b ? 'won' : ''}"><span>${m.b === it.userNation ? '➤ ' : ''}${this.natLabel(m.b)}</span><b>${m.played ? m.bs : '-'}</b></div></div>`;
+      const cols = it.rounds.map((rd, i) => `<div class="round"><h3>${roundName[i] || 'Tour'}</h3>${rd.map(cell).join('')}</div>`).join('');
+
+      let panel;
+      if (it.champion) {
+        const win = it.champion === it.userNation;
+        panel = `<div class="card ${win ? '' : ''}"><h2>${win ? '🥇 Vous êtes CHAMPIONS !' : '🏆 Tournoi terminé'}</h2>
+          <p>${this.natLabel(it.champion)} remporte ${INT_COMPS[it.compId].name}.</p>
+          ${it.mvp ? `<p class="muted">🏅 MVP du tournoi : <b>${it.mvp.name}</b> (${it.mvp.pts} pts)</p>` : ''}
+          <button class="btn ghost" data-act="intl-new">Nouveau tournoi</button></div>`;
+      } else {
+        const um = this.currentIntlUserMatchSafe(it);
+        if (um) {
+          panel = `<div class="card"><h2>Votre match — ${roundName[it.round] || ''}</h2>
+            <div class="scoreboard"><div class="tm" style="font-size:22px">${this.natLabel(um.a === it.userNation ? um.a : um.b)}</div>
+              <div class="muted" style="font-weight:800">VS</div>
+              <div class="tm" style="font-size:22px">${this.natLabel(um.a === it.userNation ? um.b : um.a)}</div></div>
+            <div class="row" style="justify-content:center">
+              <button class="btn primary" data-act="intl-play">🏀 Jouer mon match</button>
+              <button class="btn ghost" data-act="intl-all">⏩ Simuler le tournoi</button></div></div>`;
+        } else {
+          panel = `<div class="card center"><h2>Éliminé du tournoi</h2>
+            <button class="btn ghost" data-act="intl-round">Simuler le tour suivant</button>
+            <button class="btn ghost" data-act="intl-all">⏩ Simuler la fin</button></div>`;
+        }
+      }
+      return `<div class="card"><h2>🌍 ${INT_COMPS[it.compId].flag} ${INT_COMPS[it.compId].name}</h2>
+          <p class="muted" style="font-size:12px">Votre sélection : <b>${this.natLabel(it.userNation)}</b></p></div>
+        ${panel}
+        <div class="card"><h3>Tableau</h3><div class="bracket">${cols}</div></div>${palma}`;
     }
 
+    // Écran de sélection (aucun tournoi en cours)
+    const comp = this._intlComp && INT_COMPS[this._intlComp] ? this._intlComp : 'eurobasket'; this._intlComp = comp;
+    const nations = INT_COMPS[comp].nations;
+    const nation = (this._intlNation && nations.includes(this._intlNation)) ? this._intlNation : nations[0]; this._intlNation = nation;
+    const compOpts = Object.entries(INT_COMPS).map(([k, v]) => `<option value="${k}" ${k === comp ? 'selected' : ''}>${v.flag} ${v.name}</option>`).join('');
+    const natOpts = nations.map(id => `<option value="${id}" ${id === nation ? 'selected' : ''}>${this.natLabel(id)}</option>`).join('');
     return `<div class="card"><h2>🌍 Compétitions internationales</h2>
-        <p class="muted" style="font-size:12.5px;margin-bottom:8px">Choisissez une compétition et votre sélection, puis disputez le tournoi à élimination directe (8 nations). Best-effort sur les rosters nationaux.</p>
-        <div class="row" style="flex-wrap:wrap">
+        <p class="muted" style="font-size:12.5px;margin-bottom:8px">Choisissez une compétition et votre sélection, puis disputez le tournoi <b>match par match</b> (élimination directe, 8 nations). Best-effort sur les rosters nationaux.</p>
+        <div class="row" style="flex-wrap:wrap;align-items:flex-end">
           <div><div class="muted" style="font-size:12px">Compétition</div><select id="intl-comp">${compOpts}</select></div>
           <div><div class="muted" style="font-size:12px">Votre sélection</div><select id="intl-nation">${natOpts}</select></div>
-          <button class="btn primary" data-act="run-intl" style="align-self:flex-end">🏀 Disputer le tournoi</button>
-        </div>
-        <h3>Palmarès international</h3><div>${troHtml}</div>
-      </div>${result}`;
+          <button class="btn primary" data-act="start-intl">🏀 Lancer le tournoi</button>
+        </div></div>${palma}`;
+  },
+  currentIntlUserMatchSafe(it) {
+    const rd = it.rounds[it.round] || [];
+    return rd.find(m => !m.played && (m.a === it.userNation || m.b === it.userNation)) || null;
   },
 
   legendModal(i) {
@@ -1471,13 +1537,11 @@ const UI = {
         if (out && out.err) { this.toast(out.err); break; }
         this._exResult = out; R(); break;
       }
-      case 'run-intl': {
-        const out = Game.runInternational(this._intlComp||'eurobasket', this._intlNation);
-        if (out && out.err) { this.toast(out.err); break; }
-        this._intlResult = out;
-        this.toast(out.bracket.champion===out.userNation?'🥇 Vous êtes champions !':`${this.natLabel(out.bracket.champion)} champion`);
-        R(); break;
-      }
+      case 'start-intl': { const r=Game.startInternational(this._intlComp||'eurobasket', this._intlNation); if(r&&r.err)this.toast(r.err); R(); break; }
+      case 'intl-play': { const r=Game.playIntlUserMatch(); if(r){const it=Game.state.intl;const won=r.m.winner===it.userNation; this.toast((won?'Victoire ':'Défaite ')+r.m.as+'-'+r.m.bs);} R(); break; }
+      case 'intl-round': Game.autoSimIntlRound(); R(); break;
+      case 'intl-all': Game.simIntlAll(); R(); break;
+      case 'intl-new': Game.state.intl=null; Game.save(); R(); break;
       // playoffs
       case 'po-playgame': {
         const r = Game.playUserSeriesGame();

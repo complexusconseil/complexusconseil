@@ -515,34 +515,65 @@ const Game = {
     autoMinutes(team); team.priorities = autoPriorities(team);
     return team;
   },
-  runInternational(compId, userNationId) {
+  // Démarre un tournoi jouable match par match (élimination directe, 8 nations)
+  startInternational(compId, userNationId) {
     const comp = (typeof INT_COMPS !== 'undefined') ? INT_COMPS[compId] : null;
     if (!comp) return { err: 'Compétition inconnue.' };
     const teams = {}; comp.nations.forEach(id => teams[id] = this.buildNationalTeam(id));
     const seeds = [...comp.nations].sort((a, b) => teamOverall(teams[b]) - teamOverall(teams[a]));
-    const scorers = {};
+    const qfPairs = [[0, 7], [3, 4], [2, 5], [1, 6]].map(([i, j]) => ({ a: seeds[i], b: seeds[j], as: null, bs: null, winner: null, played: false }));
+    this.state.intl = { compId, userNation: userNationId, teams, seeds, rounds: [qfPairs], round: 0, champion: null, mvp: null, scorers: {} };
+    this.save();
+    return { ok: true };
+  },
+  currentIntlUserMatch() {
+    const it = this.state.intl; if (!it || it.champion) return null;
+    const rd = it.rounds[it.round] || [];
+    return rd.find(m => !m.played && (m.a === it.userNation || m.b === it.userNation)) || null;
+  },
+  _intlSimMatch(m) {
+    const it = this.state.intl;
     const saved = ERA_RULES; ERA_RULES = { threePA: 0.8, pace: 0.92, fgAdj: 0, confMode: 'single' };
-    const simMatch = (a, b) => {
-      const res = simGame(teams[a], teams[b]);
-      const as = res.home.score, bs = res.away.score;
-      res.home.box.forEach(x => scorers[x.p.name] = (scorers[x.p.name] || 0) + x.s.pts);
-      res.away.box.forEach(x => scorers[x.p.name] = (scorers[x.p.name] || 0) + x.s.pts);
-      return { a, b, as, bs, winner: as >= bs ? a : b };
-    };
-    const qfPairs = [[0, 7], [3, 4], [2, 5], [1, 6]].map(([i, j]) => [seeds[i], seeds[j]]);
-    const qf = qfPairs.map(([a, b]) => simMatch(a, b));
-    const sf = [simMatch(qf[0].winner, qf[1].winner), simMatch(qf[2].winner, qf[3].winner)];
-    const fn = simMatch(sf[0].winner, sf[1].winner);
+    const res = simGame(it.teams[m.a], it.teams[m.b]);
     ERA_RULES = saved;
-    const mvpE = Object.entries(scorers).sort((x, y) => y[1] - x[1])[0];
-    const bracket = { rounds: [qf, sf, [fn]], champion: fn.winner, mvp: mvpE ? { name: mvpE[0], pts: mvpE[1] } : null };
-    if (userNationId && bracket.champion === userNationId) {
-      this.state.intlTrophies = this.state.intlTrophies || [];
-      this.state.intlTrophies.push({ comp: compId, nation: userNationId, season: this.state.season });
-      this.log(`🥇 ${NATIONS[userNationId].name} remporte ${comp.name} !`);
-      this.save();
+    m.as = res.home.score; m.bs = res.away.score; m.winner = m.as >= m.bs ? m.a : m.b; m.played = true;
+    res.home.box.forEach(x => it.scorers[x.p.name] = (it.scorers[x.p.name] || 0) + x.s.pts);
+    res.away.box.forEach(x => it.scorers[x.p.name] = (it.scorers[x.p.name] || 0) + x.s.pts);
+    return { m, res };
+  },
+  _intlAdvance() {
+    const it = this.state.intl; const rd = it.rounds[it.round];
+    if (!rd.every(m => m.played)) return;
+    if (rd.length === 1) {
+      it.champion = rd[0].winner;
+      const mv = Object.entries(it.scorers).sort((x, y) => y[1] - x[1])[0];
+      it.mvp = mv ? { name: mv[0], pts: mv[1] } : null;
+      if (it.userNation && it.champion === it.userNation) {
+        this.state.intlTrophies = this.state.intlTrophies || [];
+        this.state.intlTrophies.push({ comp: it.compId, nation: it.userNation, season: this.state.season });
+        this.log(`🥇 ${NATIONS[it.userNation].name} remporte ${INT_COMPS[it.compId].name} !`);
+      }
+      this.save(); return;
     }
-    return { ok: true, comp: compId, userNation: userNationId, bracket, seeds };
+    const w = rd.map(m => m.winner); const next = [];
+    for (let i = 0; i < w.length; i += 2) next.push({ a: w[i], b: w[i + 1], as: null, bs: null, winner: null, played: false });
+    it.rounds.push(next); it.round++;
+  },
+  playIntlUserMatch() {
+    const m = this.currentIntlUserMatch(); if (!m) return null;
+    const r = this._intlSimMatch(m);
+    this.state.intl.rounds[this.state.intl.round].forEach(x => { if (!x.played) this._intlSimMatch(x); });
+    this._intlAdvance();
+    this.save();
+    return r;
+  },
+  autoSimIntlRound() {
+    const it = this.state.intl; if (!it || it.champion) return;
+    it.rounds[it.round].forEach(m => { if (!m.played) this._intlSimMatch(m); });
+    this._intlAdvance(); this.save();
+  },
+  simIntlAll() {
+    let guard = 0; while (this.state.intl && !this.state.intl.champion && guard++ < 10) this.autoSimIntlRound();
   },
 
   /* ------------------------------ Intersaison --------------------------- */

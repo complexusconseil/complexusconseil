@@ -45,7 +45,7 @@ const TRAINING_FOCUS = {
   defense:    { name: 'Défense', attr: 'defense' },
   athletic:   { name: 'Athlétisme', attr: 'athletic' },
 };
-function genStaffName() { return pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES); }
+function genStaffName() { return (typeof COACH_NAMES !== 'undefined') ? pick(COACH_NAMES) : (pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES)); }
 function genStaffMarket() {
   const m = {};
   STAFF_ROLES.forEach(([k]) => {
@@ -1055,6 +1055,16 @@ function genFreeAgents(eraId) {
       p.salary = contractValue(p.ovr, p.age);
       fas.push(p);
     });
+  } else if (typeof ERA_FREE_AGENTS !== 'undefined' && ERA_FREE_AGENTS[eraId]) {
+    // Époque : noms réels de vétérans emblématiques + quelques joueurs générés pour compléter.
+    ERA_FREE_AGENTS[eraId].forEach(e => {
+      const ovr = e.ovr || randInt(70, 82);
+      const p = makePlayer(e.pos, { base: ovr, age: e.age || randInt(28, 36), years: 0 });
+      p.name = e.n; p.ovr = ovr; p.real = true;
+      p.salary = contractValue(p.ovr, p.age);
+      fas.push(p);
+    });
+    for (let i = 0; i < 8; i++) fas.push(makePlayer(pick(POSITIONS), { base: randInt(58, 70), age: randInt(23, 33), years: 0 }));
   } else {
     for (let i = 0; i < 24; i++) fas.push(makePlayer(pick(POSITIONS), { base: randInt(58, 76), age: randInt(23, 35), years: 0 }));
   }

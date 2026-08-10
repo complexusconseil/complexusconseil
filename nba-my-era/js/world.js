@@ -164,3 +164,41 @@ const INT_COMPS = {
   worldcup:   { name: 'Coupe du Monde FIBA', flag: '🌍', nations: ['USA', 'CAN', 'SRB', 'FRA', 'GER', 'ESP', 'SLO', 'AUS'] },
   olympics:   { name: 'Jeux Olympiques', flag: '🥇', nations: ['USA', 'FRA', 'SRB', 'CAN', 'GER', 'ESP', 'GRE', 'SLO'] },
 };
+
+/* ------------- Renforts (étoffe les rotations, best-effort) ------------ */
+const EURO_EXTRA = {
+  RMA: [{ n: 'Bruno Fernando', pos: 'C', ovr: 78, age: 27 }, { n: 'Alberto Abalde', pos: 'SG', ovr: 76, age: 30 }],
+  FCB: [{ n: 'Chimezie Metu', pos: 'PF', ovr: 78, age: 28 }, { n: 'Youssoupha Fall', pos: 'C', ovr: 76, age: 30 }],
+  PAN: [{ n: 'Omer Yurtseven', pos: 'C', ovr: 79, age: 27 }, { n: 'Panagiotis Kalaitzakis', pos: 'SF', ovr: 74, age: 26 }],
+  OLY: [{ n: 'Alec Peters', pos: 'PF', ovr: 79, age: 30 }, { n: 'Luke Sikma', pos: 'PF', ovr: 76, age: 36 }],
+  FEN: [{ n: 'Bobby Dixon', pos: 'SG', ovr: 74, age: 41 }, { n: 'Melih Mahmutoğlu', pos: 'SG', ovr: 74, age: 35 }],
+  EFS: [{ n: 'PJ Dozier', pos: 'SG', ovr: 77, age: 29 }, { n: 'Yağız Aksu', pos: 'PF', ovr: 72, age: 25 }],
+  MIL: [{ n: 'Fabien Causeur', pos: 'SG', ovr: 74, age: 38 }, { n: 'Ousmane Diop', pos: 'PF', ovr: 72, age: 24 }],
+  VIR: [{ n: 'Matt Morgan', pos: 'PG', ovr: 76, age: 28 }, { n: 'Alessandro Pajola', pos: 'PG', ovr: 77, age: 25 }],
+  MON: [{ n: 'Georgios Papagiannis', pos: 'C', ovr: 78, age: 28 }, { n: 'Jaron Blossomgame', pos: 'SF', ovr: 76, age: 32 }],
+  ASV: [{ n: 'Théo Maledon', pos: 'PG', ovr: 79, age: 24 }, { n: 'Charles Kahudi', pos: 'SF', ovr: 72, age: 39 }],
+  BAY: [{ n: 'Leandro Bolmaro', pos: 'SG', ovr: 76, age: 25 }, { n: 'Niels Giffey', pos: 'SF', ovr: 73, age: 34 }],
+  ZAL: [{ n: 'Tyson Carter', pos: 'SG', ovr: 76, age: 28 }, { n: 'Arnas Butkevičius', pos: 'SG', ovr: 73, age: 34 }],
+  PAR: [{ n: 'Duane Washington Jr.', pos: 'SG', ovr: 78, age: 26 }, { n: 'Balša Koprivica', pos: 'C', ovr: 74, age: 25 }],
+  RED: [{ n: 'Luka Mitrović', pos: 'PF', ovr: 74, age: 32 }, { n: 'Dejan Davidovac', pos: 'SF', ovr: 73, age: 30 }],
+  MAC: [{ n: 'John DiBartolomeo', pos: 'PG', ovr: 73, age: 34 }, { n: 'Rafi Menco', pos: 'SF', ovr: 72, age: 30 }],
+  BAS: [{ n: 'Luka Šamanić', pos: 'PF', ovr: 78, age: 25 }, { n: 'Maik Kotsar', pos: 'C', ovr: 74, age: 28 }],
+};
+Object.keys(EURO_EXTRA).forEach(k => { if (EURO_ROSTERS[k]) EURO_ROSTERS[k] = EURO_ROSTERS[k].concat(EURO_EXTRA[k]); });
+if (typeof ERA_ROSTERS !== 'undefined') ERA_ROSTERS.euro = EURO_ROSTERS;
+
+const NAT_EXTRA = {
+  USA: [{ n: 'Tyrese Haliburton', pos: 'PG', ovr: 88 }, { n: 'Jalen Brunson', pos: 'PG', ovr: 87 }, { n: 'Paolo Banchero', pos: 'PF', ovr: 86 }],
+  FRA: [{ n: 'Bilal Coulibaly', pos: 'SF', ovr: 78 }, { n: 'Théo Maledon', pos: 'PG', ovr: 76 }, { n: 'Ousmane Dieng', pos: 'SF', ovr: 74 }],
+  SRB: [{ n: 'Nikola Milutinov', pos: 'C', ovr: 80 }, { n: 'Vanja Marinković', pos: 'SG', ovr: 75 }],
+  CAN: [{ n: 'Andrew Nembhard', pos: 'PG', ovr: 78 }, { n: 'Trey Lyles', pos: 'PF', ovr: 74 }, { n: 'Dwight Powell', pos: 'C', ovr: 72 }],
+  GER: [{ n: 'Johannes Thiemann', pos: 'PF', ovr: 76 }, { n: 'David Krämer', pos: 'SG', ovr: 73 }, { n: 'Justus Hollatz', pos: 'PG', ovr: 73 }],
+  ESP: [{ n: 'Sergio Llull', pos: 'SG', ovr: 74 }, { n: 'Alberto Díaz', pos: 'PG', ovr: 74 }, { n: 'Jaime Pradilla', pos: 'PF', ovr: 73 }],
+  GRE: [{ n: 'Nick Calathes', pos: 'PG', ovr: 80 }, { n: 'Georgios Papagiannis', pos: 'C', ovr: 78 }, { n: 'Vasilis Toliopoulos', pos: 'SG', ovr: 72 }],
+  SLO: [{ n: 'Edo Murić', pos: 'SF', ovr: 74 }, { n: 'Gregor Hrovat', pos: 'SG', ovr: 73 }, { n: 'Žiga Samar', pos: 'PG', ovr: 72 }],
+  LTU: [{ n: 'Gytis Radzevičius', pos: 'SF', ovr: 73 }, { n: 'Vaidas Kariniauskas', pos: 'SG', ovr: 72 }],
+  ITA: [{ n: 'Gabriele Procida', pos: 'SG', ovr: 76 }, { n: 'Nicola Akele', pos: 'PF', ovr: 72 }, { n: 'Guglielmo Caruso', pos: 'C', ovr: 72 }],
+  AUS: [{ n: 'Josh Green', pos: 'SG', ovr: 75 }, { n: 'Xavier Cooks', pos: 'PF', ovr: 74 }, { n: 'Jack White', pos: 'PF', ovr: 72 }],
+  TUR: [{ n: 'Onuralp Bitim', pos: 'SF', ovr: 74 }, { n: 'Yiğitcan Saybir', pos: 'C', ovr: 72 }, { n: 'Berkay Candan', pos: 'SF', ovr: 71 }],
+};
+Object.keys(NAT_EXTRA).forEach(k => { if (NATIONS[k]) NATIONS[k].players = NATIONS[k].players.concat(NAT_EXTRA[k].map(p => ({ ...p, age: p.age || 26 }))); });

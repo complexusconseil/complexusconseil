@@ -465,6 +465,43 @@ const REAL_ROSTERS = {
 };
 
 /* ==========================================================================
+   Histoire réelle des franchises (best-effort) : titres, années de sacre,
+   légendes / numéros retirés. Sert de socle historique aux fiches de franchise.
+   ========================================================================== */
+const FRANCHISE_LORE = {
+  BOS: { titles: 18, years: [1957,1959,1960,1961,1962,1963,1964,1965,1966,1968,1969,1974,1976,1981,1984,1986,2008,2024], legends: ['Bill Russell #6','Larry Bird #33','John Havlicek #17','Paul Pierce #34','Kevin Garnett #5'] },
+  LAL: { titles: 17, years: [1949,1950,1952,1953,1954,1972,1980,1982,1985,1987,1988,2000,2001,2002,2009,2010,2020], legends: ['Magic Johnson #32','Kobe Bryant #24','Kareem Abdul-Jabbar #33','Shaquille O\'Neal #34','Jerry West #44'] },
+  GSW: { titles: 7, years: [1947,1956,1975,2015,2017,2018,2022], legends: ['Stephen Curry #30','Wilt Chamberlain #13','Rick Barry #24','Klay Thompson #11'] },
+  CHI: { titles: 6, years: [1991,1992,1993,1996,1997,1998], legends: ['Michael Jordan #23','Scottie Pippen #33','Dennis Rodman #91'] },
+  SAS: { titles: 5, years: [1999,2003,2005,2007,2014], legends: ['Tim Duncan #21','David Robinson #50','Manu Ginóbili #20','Tony Parker #9'] },
+  PHI: { titles: 3, years: [1955,1967,1983], legends: ['Julius Erving #6','Allen Iverson #3','Wilt Chamberlain #13','Charles Barkley #34'] },
+  DET: { titles: 3, years: [1989,1990,2004], legends: ['Isiah Thomas #11','Joe Dumars #4','Bill Laimbeer #40','Ben Wallace #3'] },
+  MIA: { titles: 3, years: [2006,2012,2013], legends: ['Dwyane Wade #3','Alonzo Mourning #33','Udonis Haslem #40'] },
+  NYK: { titles: 2, years: [1970,1973], legends: ['Walt Frazier #10','Willis Reed #19','Patrick Ewing #33'] },
+  HOU: { titles: 2, years: [1994,1995], legends: ['Hakeem Olajuwon #34','Yao Ming #11','Clyde Drexler #22'] },
+  MIL: { titles: 2, years: [1971,2021], legends: ['Kareem Abdul-Jabbar #33','Oscar Robertson #1','Giannis Antetokounmpo #34'] },
+  OKC: { titles: 1, years: [1979], legends: ['Gary Payton #20','Kevin Durant #35','Russell Westbrook #0'] },
+  DEN: { titles: 1, years: [2023], legends: ['Nikola Jokić #15','Alex English #2','Dikembe Mutombo #55'] },
+  DAL: { titles: 1, years: [2011], legends: ['Dirk Nowitzki #41','Rolando Blackman #22'] },
+  TOR: { titles: 1, years: [2019], legends: ['Kyle Lowry #7','Vince Carter #15','DeMar DeRozan #10'] },
+  CLE: { titles: 1, years: [2016], legends: ['LeBron James #23','Austin Carr #34','Žydrūnas Ilgauskas #11'] },
+  WAS: { titles: 1, years: [1978], legends: ['Wes Unseld #41','Elvin Hayes #11','Gilbert Arenas #0'] },
+  POR: { titles: 1, years: [1977], legends: ['Bill Walton #32','Clyde Drexler #22','Damian Lillard #0'] },
+  SAC: { titles: 1, years: [1951], legends: ['Oscar Robertson #14','Chris Webber #4','Mitch Richmond #2'] },
+  ATL: { titles: 1, years: [1958], legends: ['Bob Pettit #9','Dominique Wilkins #21','Lou Hudson #23'] },
+  BKN: { titles: 0, years: [], legends: ['Jason Kidd #5','Vince Carter #15','Dražen Petrović #3'] },
+  IND: { titles: 0, years: [], legends: ['Reggie Miller #31','Mel Daniels #34','George McGinnis #30'] },
+  MIN: { titles: 0, years: [], legends: ['Kevin Garnett #21','Kevin Love','Anthony Edwards'] },
+  UTA: { titles: 0, years: [], legends: ['John Stockton #12','Karl Malone #32','Pete Maravich #7'] },
+  ORL: { titles: 0, years: [], legends: ['Shaquille O\'Neal','Dwight Howard #12','Nick Anderson #25'] },
+  CHA: { titles: 0, years: [], legends: ['Muggsy Bogues #1','Larry Johnson #2','Kemba Walker #15'] },
+  PHX: { titles: 0, years: [], legends: ['Steve Nash #13','Charles Barkley #34','Walter Davis #6'] },
+  LAC: { titles: 0, years: [], legends: ['Chris Paul #3','Blake Griffin #32','Bob McAdoo #11'] },
+  MEM: { titles: 0, years: [], legends: ['Marc Gasol #33','Zach Randolph #50','Mike Conley #11'] },
+  NOP: { titles: 0, years: [], legends: ['Chris Paul #3','Anthony Davis','David West #30'] },
+};
+
+/* ==========================================================================
    Prospects de draft — têtes d'affiche réelles connues (le reste est projeté)
    La classe 2026 est déjà en NBA (Dybantsa, Boozer, Peterson…). La cuvée 2027
    manque de superstar établie ; seul le n°1 pressenti est connu à ce jour.
@@ -505,3 +542,51 @@ const REAL_FREE_AGENTS = [
   { n: 'Kevin Knox II', pos: 'SF', ovr: 72, age: 26 },
   { n: 'Davis Bertans', pos: 'PF', ovr: 72, age: 33 },
 ];
+
+/* ==========================================================================
+   Agents libres vétérans par époque (best-effort) : noms réels de joueurs
+   emblématiques de chaque ère, pour que le marché des transferts « colle à la
+   réalité » plutôt que de proposer des noms générés. Disponibilité fictionnalisée.
+   ========================================================================== */
+const ERA_FREE_AGENTS = {
+  e1968: [
+    { n: 'Hal Greer', pos: 'SG' }, { n: 'Sam Jones', pos: 'SG' }, { n: 'Dave Bing', pos: 'PG' },
+    { n: 'Gail Goodrich', pos: 'PG' }, { n: 'Bob Boozer', pos: 'PF' }, { n: 'Chet Walker', pos: 'SF' },
+    { n: 'Zelmo Beaty', pos: 'C' }, { n: 'Guy Rodgers', pos: 'PG' }, { n: 'Tom Van Arsdale', pos: 'SG' },
+    { n: 'Dick Van Arsdale', pos: 'SF' }, { n: 'Archie Clark', pos: 'PG' }, { n: 'Happy Hairston', pos: 'PF' },
+    { n: 'Don Ohl', pos: 'SG' }, { n: 'Len Wilkens', pos: 'PG' }, { n: 'Rudy LaRusso', pos: 'PF' },
+    { n: 'Walt Bellamy', pos: 'C' },
+  ],
+  e1986: [
+    { n: 'Alex English', pos: 'SF' }, { n: 'Marques Johnson', pos: 'SF' }, { n: 'Bernard King', pos: 'SF' },
+    { n: 'Andrew Toney', pos: 'SG' }, { n: 'World B. Free', pos: 'SG' }, { n: 'Reggie Theus', pos: 'SG' },
+    { n: 'Norm Nixon', pos: 'PG' }, { n: 'Gus Williams', pos: 'PG' }, { n: 'Jack Sikma', pos: 'C' },
+    { n: 'Bill Laimbeer', pos: 'C' }, { n: 'Buck Williams', pos: 'PF' }, { n: 'Roy Tarpley', pos: 'PF' },
+    { n: 'Eddie Johnson', pos: 'SF' }, { n: 'Michael Cooper', pos: 'SG' }, { n: 'Jeff Malone', pos: 'SG' },
+    { n: 'Otis Thorpe', pos: 'PF' },
+  ],
+  e1996: [
+    { n: 'Mitch Richmond', pos: 'SG' }, { n: 'Reggie Miller', pos: 'SG' }, { n: 'Dan Majerle', pos: 'SG' },
+    { n: 'Kevin Johnson', pos: 'PG' }, { n: 'Mark Price', pos: 'PG' }, { n: 'Detlef Schrempf', pos: 'SF' },
+    { n: 'Horace Grant', pos: 'PF' }, { n: 'Dikembe Mutombo', pos: 'C' }, { n: 'Vin Baker', pos: 'PF' },
+    { n: 'Cedric Ceballos', pos: 'SF' }, { n: 'Jim Jackson', pos: 'SG' }, { n: 'Rod Strickland', pos: 'PG' },
+    { n: 'Nick Van Exel', pos: 'PG' }, { n: 'Christian Laettner', pos: 'PF' }, { n: 'Dale Davis', pos: 'PF' },
+    { n: 'Tom Gugliotta', pos: 'PF' },
+  ],
+  e2016: [
+    { n: 'Dwyane Wade', pos: 'SG' }, { n: 'Carmelo Anthony', pos: 'SF' }, { n: 'Pau Gasol', pos: 'C' },
+    { n: 'Al Horford', pos: 'C' }, { n: 'Andre Iguodala', pos: 'SF' }, { n: 'Rajon Rondo', pos: 'PG' },
+    { n: 'Jeff Teague', pos: 'PG' }, { n: 'Nicolas Batum', pos: 'SF' }, { n: 'Ryan Anderson', pos: 'PF' },
+    { n: 'Bismack Biyombo', pos: 'C' }, { n: 'Evan Turner', pos: 'SG' }, { n: 'Marvin Williams', pos: 'PF' },
+    { n: 'Jared Dudley', pos: 'SF' }, { n: 'Ian Mahinmi', pos: 'C' }, { n: 'Courtney Lee', pos: 'SG' },
+    { n: 'Solomon Hill', pos: 'SF' },
+  ],
+  euro: [
+    { n: 'Sergio Llull', pos: 'PG' }, { n: 'Vasilije Micić', pos: 'PG' }, { n: 'Nando de Colo', pos: 'SG' },
+    { n: 'Kostas Sloukas', pos: 'PG' }, { n: 'Mike James', pos: 'PG' }, { n: 'Shane Larkin', pos: 'PG' },
+    { n: 'Nick Calathes', pos: 'PG' }, { n: 'Will Clyburn', pos: 'SF' }, { n: 'Ekpe Udoh', pos: 'C' },
+    { n: 'Jan Veselý', pos: 'C' }, { n: 'Georgios Printezis', pos: 'PF' }, { n: 'Edy Tavares', pos: 'C' },
+    { n: 'Marius Grigonis', pos: 'SG' }, { n: 'Cory Higgins', pos: 'SG' }, { n: 'Tornike Shengelia', pos: 'PF' },
+    { n: 'Nikola Milutinov', pos: 'C' },
+  ],
+};

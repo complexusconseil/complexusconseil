@@ -33,18 +33,25 @@ La connexion se fait en **pair-à-pair (WebRTC via PeerJS)** :
 Le jeu tourne dans un **vrai moteur 3D WebGL** (Three.js) avec un pipeline de
 rendu moderne :
 
-- **Matériaux PBR** (metalness/roughness) et **éclairage par image (IBL)** via un
-  ciel procédural → surfaces réalistes, or et métal qui brillent.
-- **Tone mapping ACES** (rendu « cinéma ») et espace colorimétrique correct.
+**Optimisé pour PC** (qualité maximale, plein écran) :
+
+- **Textures PBR procédurales** générées à la volée : tissu, métal brossé, pierre en
+  blocs, planches de bois, écorce, tuiles de toit — avec **normal maps** (relief de surface).
+- **Éclairage par image (IBL)** via un ciel procédural + lumière solaire (ombres **4K**
+  douces) et lumière d'appoint ; **tone mapping ACES** (rendu « cinéma »).
 - **Post-traitement** : occlusion ambiante **SSAO** (ombres de contact), **bloom**,
-  anti-aliasing **SMAA**, **ombres douces**.
-- **Terrain** multi-textures avec **relief** (normal maps), **eau animée** réfléchissante,
-  **végétation dense** (herbes et rochers par milliers, en instancing).
-- **Personnages articulés animés** : torse, tête, bras, jambes et arme, avec animations
-  de marche, d'attaque et de repos ; cavaliers montés, béliers à roues.
-- Bâtiments détaillés (tourelles d'angle, portes, fenêtres, drapeaux).
+  anti-aliasing **SMAA**.
+- **Personnages détaillés articulés** : corps arrondis (capsules), têtes, mains, pieds,
+  **casques** et **boucliers** pour les soldats, animés (marche, attaque, repos) ;
+  cavaliers montés, béliers à roues.
+- **Bâtiments en pierre** avec **créneaux**, tourelles à toits de tuiles, portes,
+  fenêtres éclairées, drapeaux d'équipe.
+- **Terrain** multi-textures avec relief, **eau animée** réfléchissante, **arbres à
+  canopée arrondie**, et **végétation dense** (milliers d'herbes, rochers, fleurs).
 - Caméra RTS inclinée (pan, rotation, zoom), **brouillard de guerre 3D**, flèches en vol.
-- **Réglage de qualité automatique** : version allégée sur mobile pour rester fluide.
+
+> Le rendu vise une haute fidélité **stylisée** (pas du photoréalisme, qui exigerait des
+> modèles glTF sculptés et des animations mocap). Optimisé pour un GPU de PC de bureau.
 
 Le moteur de jeu (pathfinding A\*, âges, contres, combat, réseau, IA) est inchangé.
 

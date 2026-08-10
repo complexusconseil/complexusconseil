@@ -455,9 +455,11 @@ function send(o){if(conn&&conn.open)conn.send(o);}
 function onNetData(m){if(m.t==='init'){SEED=m.seed;startGameAsGuest();}else if(m.t==='state'){ingestSnapshot(m.s);}else if(m.t==='cmd'){if(ROLE==='host'&&G)applyCommand(G,'p2',m.c);}}
 function issue(c){if(ROLE==='host')applyCommand(G,ME,c);else send({t:'cmd',c});}
 const UC=Object.keys(UNIT), BC=Object.keys(BLD), NC=Object.keys(NODE);
+const RES=['food','wood','gold','stone'];
+const RESCOL={food:'#e2564f',wood:'#9a6a3a',gold:'#e0a63c',stone:'#c2cad2'};
 const SC=['idle','move','attackmove','attack','gather','return','tobuild','building'];
 function makeSnapshot(s){return{tick:s.tick,winner:s.winner,pl:{p1:packP(s.players.p1),p2:packP(s.players.p2)},
-  u:s.units.map(u=>[u.id,u.owner==='p1'?0:1,UC.indexOf(u.type),Math.round(u.x),Math.round(u.y),Math.round(u.hp),SC.indexOf(u.state),Math.round(u.dir*100),Math.round(u.carry||0)]),
+  u:s.units.map(u=>[u.id,u.owner==='p1'?0:1,UC.indexOf(u.type),Math.round(u.x),Math.round(u.y),Math.round(u.hp),SC.indexOf(u.state),Math.round(u.dir*100),Math.round(u.carry||0),u.carryType?RES.indexOf(u.carryType):-1]),
   b:s.buildings.map(b=>[b.id,b.owner==='p1'?0:1,BC.indexOf(b.type),b.tx,b.ty,Math.round(b.hp),b.done?1:0,Math.round(b.progress*100),b.queue.length,Math.round(b.trainT*10),b.queue[0]?UC.indexOf(b.queue[0]):-1]),
   n:s.nodes.map(n=>[n.id,NC.indexOf(n.type),Math.round(n.x),Math.round(n.y),Math.round(n.amount)]),
   pr:s.proj.map(p=>[Math.round(p.x),Math.round(p.y),Math.round(p.tx),Math.round(p.ty),+(p.t/p.dur).toFixed(2),p.fam==='ran'?1:0])};}
@@ -466,7 +468,7 @@ function unpackP(a){const ups={};if(a[7])for(const k of a[7].split(','))if(k)ups
 let prevSnap=null,lastSnap=null,snapTime=0;
 function ingestSnapshot(snap){prevSnap=lastSnap;lastSnap=snap;snapTime=performance.now();
   const g={tick:snap.tick,winner:snap.winner,players:{p1:unpackP(snap.pl.p1),p2:unpackP(snap.pl.p2)},units:[],buildings:[],nodes:[],fx:G?G.fx:[],proj:[]};
-  for(const a of snap.u)g.units.push({id:a[0],owner:a[1]?'p2':'p1',type:UC[a[2]],x:a[3],y:a[4],hp:a[5],maxhp:UNIT[UC[a[2]]].hp,state:SC[a[6]],dir:a[7]/100,carry:a[8],anim:0,vx:0,vy:0});
+  for(const a of snap.u)g.units.push({id:a[0],owner:a[1]?'p2':'p1',type:UC[a[2]],x:a[3],y:a[4],hp:a[5],maxhp:UNIT[UC[a[2]]].hp,state:SC[a[6]],dir:a[7]/100,carry:a[8],carryType:a[9]>=0?RES[a[9]]:null,anim:0,vx:0,vy:0});
   for(const a of snap.b){const t=BLD[BC[a[2]]];g.buildings.push({id:a[0],owner:a[1]?'p2':'p1',type:BC[a[2]],tx:a[3],ty:a[4],x:a[3]*TILE+t.tw*TILE/2,y:a[4]*TILE+t.th*TILE/2,hp:a[5],maxhp:t.hp,done:!!a[6],progress:a[7]/100,queueLen:a[8],trainT:(a[9]||0)/10,curType:a[10]>=0?UC[a[10]]:null});}
   for(const a of snap.n)g.nodes.push({id:a[0],type:NC[a[1]],res:NODE[NC[a[1]]].res,x:a[2],y:a[3],amount:a[4],max:NODE[NC[a[1]]].amount,r:NODE[NC[a[1]]].r});
   for(const a of snap.pr)g.proj.push({x:a[0],y:a[1],tx:a[2],ty:a[3],t:a[4],dur:1,ranged:!!a[5]});
@@ -922,9 +924,15 @@ function drawWorldBars(){if(!G)return;ovlctx.save();ovlctx.font='10px system-ui,
       if(cur){const total=TRAIN_TIME[cur]||10;const remain=(b.trainT!=null?b.trainT:total);const frac=clamp(1-remain/total,0,1);
         ovlBar(p.x,p.y,48,frac,'#57b06a');ovlctx.fillStyle='#fff';ovlctx.fillText((UNIT[cur].ico||'')+' '+Math.round(frac*100)+'%'+(q>1?'  ×'+q:''),p.x,p.y-2);}}
     if(b.hp<b.maxhp){const py=(!b.done||!own||!(b.queue?b.queue.length:b.queueLen))?p.y:p.y+8;ovlBar(p.x,py+(!b.done?9:0),52,b.hp/b.maxhp,hpCol(b.hp/b.maxhp));}}
-  for(const u of G.units){if(u.hp>=u.maxhp)continue;if(u.owner!==ME&&!visibleAt(u.x,u.y))continue;
+  for(const u of G.units){
+    const dmg=u.hp<u.maxhp;
+    const carrying=u.owner===ME&&u.type==='villager'&&u.carry>0;
+    if(!dmg&&!carrying)continue;
+    if(u.owner!==ME&&!visibleAt(u.x,u.y))continue;
     const ip=interpUnitPos(u);const p=w2s3(ip.x,26,ip.y);if(p.behind||p.x<-30||p.x>innerWidth+30)continue;
-    ovlBar(p.x,p.y,22,u.hp/u.maxhp,hpCol(u.hp/u.maxhp));}
+    let y=p.y;
+    if(carrying){ovlBar(p.x,y,20,clamp(u.carry/UNIT.villager.carry,0,1),RESCOL[u.carryType]||'#e0c060');y+=7;}
+    if(dmg)ovlBar(p.x,y,22,u.hp/u.maxhp,hpCol(u.hp/u.maxhp));}
   ovlctx.restore();}
 
 /* =========================================================================

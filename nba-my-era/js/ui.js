@@ -833,17 +833,19 @@ const UI = {
         : `<b>${f.realTitles}</b> 🏆`;
       const bilan = (f.fs.w || f.fs.l) ? `${f.fs.w}-${f.fs.l}` : '—';
       const legend = (f.lo.legends && f.lo.legends.length) ? f.lo.legends[0].replace(/ #\d+$/, '') : '—';
+      const finals = (f.lo.finals != null) ? f.lo.finals : '—';
       return `<tr data-franchise="${f.id}" style="cursor:pointer">
         <td class="name">${this.badge(f.id,20)} ${t.city} ${t.name}</td>
         <td>${titleCell}</td>
+        <td>${finals}</td>
         <td class="muted" style="font-size:12px">${legend}</td>
         <td>${bilan}</td>
         <td>${f.rn ? f.rn + ' 🎽' : '—'}</td>
       </tr>`;
     }).join('');
     return `<div class="card"><h2>🏙️ Histoire des franchises</h2>
-      <p class="muted" style="font-size:12px;margin-bottom:6px">Palmarès réel de la NBA fusionné avec vos exploits en carrière. Cliquez une franchise pour son détail complet.</p>
-      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Légende</th><th>Bilan (en jeu)</th><th>N° retirés</th></tr></thead><tbody>${trs}</tbody></table></div></div>`;
+      <p class="muted" style="font-size:12px;margin-bottom:6px">Palmarès réel de la NBA fusionné avec vos exploits en carrière. Cliquez une franchise pour son histoire complète (récit, années de sacre, légendes…).</p>
+      <div class="table-wrap"><table><thead><tr><th class="name">Franchise</th><th>Titres</th><th>Finales</th><th>Légende</th><th>Bilan (en jeu)</th><th>N° retirés</th></tr></thead><tbody>${trs}</tbody></table></div></div>`;
   },
 
   franchiseModal(id) {
@@ -872,8 +874,14 @@ const UI = {
               : `<span class="pill" style="background:${t.c1};color:#fff;margin:2px">${l}</span>`;
           }).join(' ')
         : '<span class="muted">—</span>';
+      const introHtml = lore.intro ? `<p class="muted" style="font-size:13px;line-height:1.5;margin:4px 0 10px">${lore.intro}</p>` : '';
       loreHtml = `<h3 style="margin-top:14px">📜 Histoire de la franchise</h3>
-        <div class="kv"><span>Titres NBA</span><span class="v">${lore.titles || 0} 🏆</span></div>
+        ${introHtml}
+        <div class="grid cols3" style="gap:8px;margin-bottom:6px">
+          <div class="kv"><span>Fondée</span><span class="v">${lore.founded || '—'}</span></div>
+          <div class="kv"><span>Titres NBA</span><span class="v">${lore.titles || 0} 🏆</span></div>
+          <div class="kv"><span>Finales jouées</span><span class="v">${lore.finals != null ? lore.finals : '—'}</span></div>
+        </div>
         <div style="margin:6px 0"><div class="muted" style="font-size:12px;margin-bottom:3px">Saisons championnes</div>${yearsHtml}</div>
         <div style="margin:6px 0"><div class="muted" style="font-size:12px;margin-bottom:3px">Légendes de la franchise</div>${legHtml}</div>`;
     }

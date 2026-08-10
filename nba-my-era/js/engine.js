@@ -82,7 +82,8 @@ function makePlayer(pos, opts = {}) {
     stats: emptyStats(),
     // Historique carrière (par saison)
     history: [],
-    injuredGames: 0,
+    injuryGames: 0,   // matchs d'indisponibilité restants (blessure)
+    _injuryDesc: null,
   };
   p.ovr = overall(p);
   p.salary = opts.salary != null ? opts.salary : contractValue(p.ovr, age);
@@ -176,15 +177,25 @@ function buildLeague(userTeamId) {
     autoMinutes(teams[t.id]);
     teams[t.id].priorities = autoPriorities(teams[t.id]);
   });
-  // Picks de draft échangeables : chaque équipe possède ses 1er tours des 3 prochaines années
+  // Picks de draft échangeables : chaque équipe possède ses 1er & 2e tours des 3 prochaines années
   const startSeason = 2026;
   TEAMS.forEach(t => {
     teams[t.id].picks = [];
     for (let y = 1; y <= 3; y++) {
       teams[t.id].picks.push({ kind: 'pick', year: startSeason + y, round: 1, from: t.id });
+      teams[t.id].picks.push({ kind: 'pick', year: startSeason + y, round: 2, from: t.id });
     }
   });
   return teams;
+}
+
+// Qui possède le pick (année, tour) issu de l'équipe origId ? (défaut : l'équipe d'origine)
+function resolvePickOwner(gameState, year, round, origId) {
+  for (const tid in gameState.teams) {
+    if ((gameState.teams[tid].picks || []).some(pk => pk.year === year && pk.round === round && pk.from === origId))
+      return tid;
+  }
+  return origId;
 }
 
 // Suggère un schéma offensif selon les forces de l'effectif
@@ -295,8 +306,10 @@ function genTeamBox(team, opp, portion = 1) {
   const oppD = schemeDef(opp);
   const oppDefR = defenseRating(opp);
 
-  const rot = team.roster.filter(p => (team.minutes[p.id] || 0) > 0 && !p._injured);
-  const list = rot.length >= 5 ? rot : [...team.roster].sort((a, b) => b.ovr - a.ovr).slice(0, 8);
+  const healthy = p => !(p.injuryGames > 0);
+  const rot = team.roster.filter(p => (team.minutes[p.id] || 0) > 0 && healthy(p));
+  const list = rot.length >= 5 ? rot
+    : [...team.roster].filter(healthy).sort((a, b) => b.ovr - a.ovr).slice(0, 8);
   const prioRank = {};
   (team.priorities || []).forEach((id, i) => { prioRank[id] = i; });
 
@@ -361,6 +374,34 @@ function genTeamBox(team, opp, portion = 1) {
 
   const score = box.reduce((s, b) => s + b.s.pts, 0);
   return { score, box };
+}
+
+/* ------------------------------- Blessures ------------------------------- */
+const INJURIES = [
+  'entorse de la cheville', 'élongation à la cuisse', 'contusion au genou', 'claquage aux ischios',
+  'tendinite', 'commotion', 'douleur au bas du dos', 'entorse du poignet', 'foulure du pied',
+  'inflammation au genou', 'étirement à l\'aine', 'contusion à l\'épaule',
+];
+// Décrémente les blessures de toute la ligue (un jour de calendrier)
+function healInjuries(gameState) {
+  Object.values(gameState.teams).forEach(t => t.roster.forEach(p => {
+    if (p.injuryGames > 0) { p.injuryGames--; if (p.injuryGames <= 0) { p.injuryGames = 0; p._injuryDesc = null; } }
+  }));
+}
+// Génère d'éventuelles blessures pour une équipe qui vient de jouer. Renvoie la liste des nouvelles.
+function maybeInjure(team) {
+  const out = [];
+  team.roster.forEach(p => {
+    if (p.injuryGames > 0) return;
+    const load = clamp((team.minutes[p.id] || 0) / 34, 0, 1.2);
+    const risk = 0.004 * load;                 // ~0.4% pondéré par les minutes
+    if (rnd() < risk) {
+      p.injuryGames = randInt(2, 24);
+      p._injuryDesc = pick(INJURIES);
+      out.push({ id: p.id, name: p.name, games: p.injuryGames, desc: p._injuryDesc });
+    }
+  });
+  return out;
 }
 
 // Fusionne des box scores partiels (pour le jeu par quart-temps)

@@ -235,7 +235,15 @@ const UI = {
           }</tbody></table></div>` : '<div class="muted">Statistiques disponibles après quelques matchs.</div>'}
         </div>
       </div>
-      <div class="card"><h2>Actualités</h2>${news}</div>`;
+      <div class="grid cols2">
+        <div class="card"><h2>🏥 Infirmerie</h2>${(() => {
+          const inj = ut.roster.filter(p => p.injuryGames > 0).sort((a, b) => b.injuryGames - a.injuryGames);
+          return inj.length ? `<div class="table-wrap"><table><thead><tr><th class="name">Joueur</th><th>Blessure</th><th>Absence</th></tr></thead><tbody>${
+            inj.map(p => `<tr><td class="name">${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</td><td class="muted">${p._injuryDesc || '—'}</td><td style="color:var(--red)">~${p.injuryGames} matchs</td></tr>`).join('')
+          }</tbody></table></div>` : '<div class="muted">Aucun joueur blessé. 💪</div>';
+        })()}</div>
+        <div class="card"><h2>Actualités</h2>${news}</div>
+      </div>`;
   },
 
   /* ------------------------------- Effectif ----------------------------- */
@@ -247,7 +255,7 @@ const UI = {
       const st = p.stats; const inLine = starters.has(p.id);
       return `<tr>
         <td>${this.posTag(p.pos)}</td>
-        <td class="name">${inLine?'⭐ ':''}${p.name}</td>
+        <td class="name">${inLine?'⭐ ':''}${p.name}${p.injuryGames>0?` <span title="${p._injuryDesc||''}" style="color:var(--red)">🏥${p.injuryGames}</span>`:''}</td>
         <td>${p.age}</td>
         <td>${this.ovrTag(p.ovr)}</td>
         <td class="muted">${p.potential}</td>
@@ -282,7 +290,7 @@ const UI = {
         <select data-line="${pos}">${options}</select></div>`;
     }).join('');
     const minRows = [...ut.roster].sort((a,b)=>(ut.minutes[b.id]||0)-(ut.minutes[a.id]||0)).map(p =>
-      `<div class="kv"><span>${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</span>
+      `<div class="kv"><span>${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}${p.injuryGames>0?` <span style="color:var(--red)" title="${p._injuryDesc||''}">🏥${p.injuryGames}</span>`:''}</span>
         <input class="mins" type="number" min="0" max="42" value="${ut.minutes[p.id]||0}" data-min="${p.id}"></div>`).join('');
     const okColor = totalMin===240?'var(--green)':'var(--red)';
     return `<div class="grid cols2">
@@ -705,24 +713,46 @@ const UI = {
 
   draftStep() {
     const s = Game.state; const ut = Game.ut();
-    if (!s.draftClass) return '';
-    const order = draftOrder(s);
-    const userPickPos = order.indexOf(s.userTeam) + 1;
-    const left = s.userPicksLeft || 0;
-    const prospects = s.draftClass.slice(0, 30).map(p => {
-      const scouted = (p.scout || 0) >= 2;   // les prospects bien scoutés affichent des notes plus sûres
-      return `<tr>
+    if (!s.draftClass || !s.draft) return '';
+    const d = s.draft;
+    const slot = d.board[d.onClock];
+    const onClockUser = slot && slot.teamId === s.userTeam && !d.done;
+    const myPicks = d.board.filter(sl => sl.teamId === s.userTeam);
+    const myLeft = myPicks.filter(sl => !sl.pickId).length;
+
+    // Bandeau "à qui le tour"
+    let header;
+    if (d.done) header = `<div class="pill win">Draft terminée</div>`;
+    else if (onClockUser) header = `<div class="pill" style="background:rgba(240,165,0,.18);color:var(--accent)">🎯 À VOUS — choix n°${d.onClock + 1} (tour ${slot.round})</div>`;
+    else header = `<div class="row" style="align-items:center;gap:8px">${this.badge(slot.teamId, 22)} <b>${teamById(slot.teamId).city} ${teamById(slot.teamId).name}</b> sur la sellette — choix n°${d.onClock + 1} (tour ${slot.round})</div>`;
+
+    // Derniers choix effectués
+    const recent = d.board.filter(sl => sl.pickId).slice(-6).reverse().map(sl =>
+      `<div class="kv"><span>#${d.board.indexOf(sl) + 1} ${this.badge(sl.teamId, 20)} ${teamById(sl.teamId).id}</span>
+        <span>${this.posTag(sl.pickPos)} ${sl.pickName} <span class="muted">(${sl.pickOvr})</span></span></div>`).join('') || '<div class="muted">—</div>';
+
+    const prospects = s.draftClass.slice(0, 24).map(p => `<tr>
       <td>${p.projRank}</td>
       <td class="name">${this.posTag(p.pos)} ${p.name}${p.real ? ' <small class="muted">(réel)</small>' : ''}</td>
       <td>${p.age}</td><td>${this.ovrTag(p.ovr)}</td><td class="muted">${p.potential}</td>
       <td><button class="btn ghost sm" data-player="${p.id}">Fiche</button>
-          <button class="btn green sm" data-draft="${p.id}" ${(left <= 0 || ut.roster.length >= 15) ? 'disabled' : ''}>Drafter</button></td>
-    </tr>`; }).join('');
-    return `<div class="card"><h2>Draft ${s.season + 1}</h2>
-      <p class="muted" style="margin-bottom:8px">Vos choix restants : <b>${left}</b> (1er tour, ${userPickPos}${userPickPos === 1 ? 'er' : 'e'} rang au classement inversé). Sélectionnez vos prospects, puis simulez le reste.</p>
-      <div class="table-wrap"><table><thead><tr><th>Proj.</th><th class="name">Prospect</th><th>Âge</th><th>OVR</th><th>Pot</th><th></th></tr></thead><tbody>${prospects}</tbody></table></div>
+          <button class="btn green sm" data-draft="${p.id}" ${(!onClockUser || ut.roster.length >= 15) ? 'disabled' : ''}>Drafter</button></td>
+    </tr>`).join('');
+
+    return `<div class="card"><div class="row" style="justify-content:space-between">
+        <h2>Draft ${s.season + 1}</h2>
+        <span class="chip">Vos choix restants : <b>${myLeft}</b></span></div>
+      <div style="margin:6px 0 10px">${header}</div>
+      <div class="grid cols2">
+        <div>
+          <h3>${onClockUser ? 'Sélectionnez un prospect' : 'Meilleurs prospects disponibles'}</h3>
+          <div class="table-wrap"><table><thead><tr><th>Proj.</th><th class="name">Prospect</th><th>Âge</th><th>OVR</th><th>Pot</th><th></th></tr></thead><tbody>${prospects}</tbody></table></div>
+        </div>
+        <div><h3>Choix récents</h3>${recent}</div>
+      </div>
       <div class="row end" style="margin-top:12px">
-        <button class="btn ghost" data-act="sim-draft">Simuler la fin de la draft (IA)</button>
+        ${!d.done && !onClockUser ? `<button class="btn ghost" data-act="advance-draft">⏭ Avancer jusqu'à mon choix</button>` : ''}
+        ${!d.done ? `<button class="btn ghost" data-act="sim-draft">⏩ Simuler toute la draft</button>` : ''}
         <button class="btn primary" data-act="to-fa">Passer aux agents libres →</button>
       </div></div>`;
   },
@@ -770,6 +800,7 @@ const UI = {
     this.modal(`<button class="close" onclick="UI.closeModal()">✕</button>
       <h2>${this.posTag(p.pos)} ${p.name} ${this.ovrTag(p.ovr)}</h2>
       <p class="muted">${p.age} ans · ${teamById(team).city} ${teamById(team).name} · Contrat ${p.salary} M$ (${p.years||1} an) · Potentiel ${p.potential}</p>
+      ${p.injuryGames>0?`<p style="color:var(--red);font-weight:700">🏥 Blessé : ${p._injuryDesc||'indisponible'} — absent ~${p.injuryGames} matchs.</p>`:''}
       <div class="grid cols2" style="margin-top:12px">
         <div>${bar('Tir extérieur', p.shooting)}${bar('Jeu intérieur', p.inside)}${bar('Création', p.playmaking)}</div>
         <div>${bar('Rebond', p.rebounding)}${bar('Défense', p.defense)}${bar('Athlétisme', p.athletic)}</div>
@@ -819,7 +850,7 @@ const UI = {
 
     // draft
     m.querySelectorAll('[data-draft]').forEach(b=>b.addEventListener('click',()=>{
-      const r=Game.draftPlayer(+b.dataset.draft); if(r&&r.err)this.toast(r.err); this.render();}));
+      const r=Game.userDraftPick(+b.dataset.draft); if(r&&r.err)this.toast(r.err); this.render();}));
 
     // free agency
     m.querySelectorAll('[data-sign]').forEach(b=>b.addEventListener('click',()=>{
@@ -885,12 +916,8 @@ const UI = {
       case 'to-offseason': this.tab='offseason'; R(); break;
       // offseason navigation
       case 'to-draft': Game.state.offseasonStep=1; Game.save(); R(); break;
-      case 'sim-draft': {
-        const order = draftOrder(Game.state);
-        // l'IA drafte pour toutes les équipes sauf s'il reste des prospects ; on complète 1 tour
-        order.forEach(id=>{ if(id!==Game.state.userTeam) Game.aiDraft(id); });
-        Game.save(); this.toast('Draft simulée'); R(); break;
-      }
+      case 'advance-draft': Game.advanceDraft(); R(); break;
+      case 'sim-draft': Game.simDraftAll(); this.toast('Draft simulée'); R(); break;
       case 'to-fa': Game.state.offseasonStep=2; Game.save(); R(); break;
       case 'finish-offseason': Game.state.offseasonStep=3; Game.save(); R(); break;
       case 'start-season': Game.finishOffseason(); this.tab='dash'; R(); break;

@@ -102,6 +102,14 @@ const Game = {
       g.hs = res.home.score; g.as = res.away.score;
       if (g.home === s.userTeam || g.away === s.userTeam) this.recordUserGame(g, res);
     });
+    // Blessures : cicatrisation (toute la ligue) puis nouvelles blessures des équipes du jour
+    healInjuries(s);
+    const playedTeams = new Set();
+    day.forEach(g => { playedTeams.add(g.home); playedTeams.add(g.away); });
+    playedTeams.forEach(tid => {
+      const newInj = maybeInjure(s.teams[tid]);
+      if (tid === s.userTeam) newInj.forEach(n => this.log(`🏥 ${n.name} blessé (${n.desc}) — absent ~${n.games} matchs.`));
+    });
     s.dayIndex++;
     // proposition de transfert IA de temps en temps
     if (!s.pendingTrade) {
@@ -335,12 +343,11 @@ const Game = {
            .forEach(r => this.log(`${r.name} (${r.age} ans) prend sa retraite.`));
     // recalcule priorités (des joueurs ont pu partir en retraite)
     Object.values(s.teams).forEach(t => { t.priorities = autoPriorities(t); });
-    // Draft = cuvée scoutée de l'an prochain (ou générée si absente)
+    // Draft = cuvée scoutée de l'an prochain (ou générée si absente), meilleur d'abord
     const dy = s.season + 1;
     s.draftClass = (s.scouting.classes[dy] || genProspectClass(dy)).slice()
                      .sort((a, b) => a.projRank - b.projRank);
-    // Nombre de choix de 1er tour possédés par l'utilisateur cette année
-    s.userPicksLeft = this.ut().picks.filter(p => p.year === dy && p.round === 1).length || 1;
+    this.startDraft(dy);       // construit l'ordre (2 tours) et avance jusqu'à votre 1er choix
     s.freeAgents = genFreeAgents();
     this.save();
   },
@@ -366,7 +373,9 @@ const Game = {
     Object.values(s.teams).forEach(t => {
       t.picks = (t.picks || []).filter(pk => pk.year > usedYear);
       t.picks.push({ kind: 'pick', year: s.season + 4, round: 1, from: t.id });
+      t.picks.push({ kind: 'pick', year: s.season + 4, round: 2, from: t.id });
     });
+    s.draft = null;
     // Nouvelle saison
     s.season++;
     s.schedule = buildSchedule(GAMES_PER_SEASON);
@@ -439,30 +448,75 @@ const Game = {
     this.save();
   },
 
-  draftPlayer(pid) {
-    const s = this.state; const ut = this.ut();
-    if ((s.userPicksLeft || 0) <= 0) return { err: 'Vous n\'avez plus de choix de draft cette année.' };
-    if (ut.roster.length >= 15) return { err: 'Effectif complet (15 max).' };
-    const idx = s.draftClass.findIndex(p => p.id === pid);
-    if (idx < 0) return;
-    const p = s.draftClass.splice(idx, 1)[0];
-    // nettoie les champs de prospect
-    p.prospect = false; delete p.scout; delete p._noise; delete p.projRank;
-    ut.roster.push(p);
-    ut.lineup = autoLineup(ut.roster); autoMinutes(ut); ut.priorities = autoPriorities(ut);
-    s.userPicksLeft--;
-    this.log(`Draft : vous sélectionnez ${p.name} (${p.pos}, ${p.ovr} OVR, potentiel ${p.potential}).`);
+  /* --------------------------------- Draft ------------------------------ */
+  // Construit l'ordre de draft (2 tours, pire bilan d'abord) selon la propriété des picks
+  startDraft(year) {
+    const s = this.state;
+    const rec = draftOrder(s);   // 30 équipes, pire bilan d'abord
+    const board = [];
+    [1, 2].forEach(round => {
+      rec.forEach(origId => {
+        board.push({ round, origId, teamId: resolvePickOwner(s, year, round, origId), pickId: null });
+      });
+    });
+    s.draft = { year, board, onClock: 0, done: false };
+    s.userPicksLeft = board.filter(sl => sl.teamId === s.userTeam).length;
+    this.advanceDraft();
+  },
+  // Fait avancer la draft : l'IA choisit automatiquement jusqu'à un choix de l'utilisateur (ou fin)
+  advanceDraft() {
+    const s = this.state; const d = s.draft; if (!d) return;
+    let guard = 0;
+    while (d.onClock < d.board.length && guard++ < 200) {
+      const slot = d.board[d.onClock];
+      if (slot.pickId) { d.onClock++; continue; }
+      if (slot.teamId === s.userTeam) { this.save(); return; }   // à l'utilisateur de choisir
+      // L'IA prend le meilleur prospect disponible
+      const p = s.draftClass.shift();
+      if (!p) { d.done = true; break; }
+      this._assignPick(slot, p);
+      d.onClock++;
+    }
+    if (d.onClock >= d.board.length) d.done = true;
     this.save();
+  },
+  _assignPick(slot, p) {
+    const s = this.state;
+    p.prospect = false; delete p.scout; delete p._noise;
+    slot.pickId = p.id; slot.pickName = p.name; slot.pickPos = p.pos; slot.pickOvr = p.ovr;
+    const team = s.teams[slot.teamId];
+    team.roster.push(p);
+    team.lineup = autoLineup(team.roster); autoMinutes(team); team.priorities = autoPriorities(team);
+  },
+  // L'utilisateur sélectionne un prospect (quand c'est son tour)
+  userDraftPick(pid) {
+    const s = this.state; const d = s.draft; if (!d || d.done) return { err: 'Draft terminée.' };
+    const slot = d.board[d.onClock];
+    if (!slot || slot.teamId !== s.userTeam) return { err: 'Ce n\'est pas votre tour.' };
+    if (this.ut().roster.length >= 15) return { err: 'Effectif complet (15 max).' };
+    const idx = s.draftClass.findIndex(p => p.id === pid);
+    if (idx < 0) return { err: 'Prospect indisponible.' };
+    const p = s.draftClass.splice(idx, 1)[0];
+    this._assignPick(slot, p);
+    this.log(`Draft (choix ${d.onClock + 1}, tour ${slot.round}) : vous sélectionnez ${p.name} (${p.pos}, ${p.ovr} OVR, pot. ${p.potential}).`);
+    d.onClock++;
+    this.advanceDraft();
     return { ok: true };
   },
-
-  // L'IA drafte automatiquement (meilleur prospect dispo) pour un pick
-  aiDraft(teamId) {
-    const s = this.state;
-    if (!s.draftClass.length) return null;
-    const p = s.draftClass.shift();
-    s.teams[teamId].roster.push(p);
-    return p;
+  // Simule tout le reste de la draft (l'IA choisit aussi pour vos éventuels picks restants)
+  simDraftAll() {
+    const s = this.state; const d = s.draft; if (!d) return;
+    let guard = 0;
+    while (!d.done && d.onClock < d.board.length && guard++ < 200) {
+      const slot = d.board[d.onClock];
+      if (slot.pickId) { d.onClock++; continue; }
+      const p = s.draftClass.shift();
+      if (!p) { d.done = true; break; }
+      this._assignPick(slot, p);
+      d.onClock++;
+    }
+    d.done = true;
+    this.save();
   },
 
   setLineup(pos, pid) {

@@ -41,7 +41,7 @@ const Game = {
       retiredNumbers: {},          // numéros retirés par franchise
       board: { patience: 60 },     // direction : objectif & patience
       fired: false,
-      staff: defaultStaff(),       // staff technique de l'utilisateur
+      staff: realStaffFor(eraId, userTeamId),  // staff réel de la franchise (vrai coach)
       staffMarket: genStaffMarket(),
       trainingFocus: 'none',       // axe d'entraînement de la saison
       intlTrophies: [],            // titres internationaux (sélections)
@@ -931,19 +931,73 @@ const Game = {
       home: newBox(), away: newBox(),
       quarters: [],   // [{q, hs, as}]
       done: false,
+      dec: { tempo: 'normal', focus: 'balanced', defense: 'standard' },
+      timeouts: 4, timeoutPending: false, feedback: null,
     };
+    this._syncLiveSchemes();
     this.save();
     return s.liveGame;
   },
-  // Simule le prochain quart-temps avec les schémas actuels de l'utilisateur
+
+  /* --------- Décisions en direct (changent le cours du match) ----------- */
+  // Applique les décisions « priorité » et « défense » aux schémas de l'équipe.
+  _syncLiveSchemes() {
+    const lg = this.state.liveGame; if (!lg) return;
+    const ut = this.state.teams[this.state.userTeam];
+    const F = { star: 'isoStars', inside: 'insideOut', outside: 'paceSpace', balanced: 'motion' };
+    const D = { press: 'press', beton: 'drop', standard: 'manToMan' };
+    if (F[lg.dec.focus]) ut.offScheme = F[lg.dec.focus];
+    if (D[lg.dec.defense]) ut.defScheme = D[lg.dec.defense];
+  },
+  setLiveDecision(kind, value) {
+    const lg = this.state.liveGame; if (!lg || lg.done) return;
+    lg.dec[kind] = value; this._syncLiveSchemes(); this.save();
+  },
+  liveTimeout() {
+    const lg = this.state.liveGame; if (!lg || lg.done || lg.timeouts <= 0) return false;
+    lg.timeouts--; lg.timeoutPending = true; this.save(); return true;
+  },
+  // Construit les multiplicateurs de sim à partir des décisions (tempo/priorité/temps mort).
+  _liveMods(lg) {
+    const mm = {};
+    if (lg.dec.tempo === 'push') { mm.pace = 1.14; mm.tov = 1.07; mm.three = 1.04; }
+    else if (lg.dec.tempo === 'slow') { mm.pace = 0.88; mm.tov = 0.91; mm.inside = 1.05; }
+    if (lg.dec.focus === 'star') mm.starBoost = 1.22;
+    else if (lg.dec.focus === 'inside') mm.inside = (mm.inside || 1) * 1.10;
+    else if (lg.dec.focus === 'outside') mm.three = (mm.three || 1) * 1.14;
+    if (lg.timeoutPending) mm.hot = (mm.hot || 0) + 0.045;
+    return mm;
+  },
+  // Message de retour après un quart : effet visible des décisions.
+  _buildLiveFeedback(lg, qUser, qOpp) {
+    const oppTov = qOpp.box.reduce((a, b) => a + b.s.tov, 0);
+    const top = [...qUser.box].sort((a, b) => b.s.pts - a.s.pts)[0];
+    const bits = [];
+    if (lg.timeoutPending) bits.push('⏱️ Temps mort');
+    if (top && top.s.pts >= 8) bits.push(`🔥 ${top.p.name} ${top.s.pts} pts`);
+    if (lg.dec.defense === 'press' && oppTov >= 4) bits.push(`🛡️ ${oppTov} pertes forcées`);
+    else if (oppTov >= 5) bits.push(`${oppTov} pertes adverses`);
+    if (lg.dec.tempo === 'push') bits.push('🏃 tempo élevé');
+    else if (lg.dec.tempo === 'slow') bits.push('🐢 jeu ralenti');
+    lg.feedback = bits.length ? bits.join(' · ') : null;
+  },
+
+  // Simule le prochain quart-temps en appliquant les décisions de l'utilisateur
   simQuarter() {
     const s = this.state; const lg = s.liveGame; if (!lg || lg.done) return null;
     const H = s.teams[lg.gameRef.home], A = s.teams[lg.gameRef.away];
-    // ~un quart de match
+    const userT = s.teams[s.userTeam]; const oppT = (H === userT) ? A : H;
+    // Décisions en direct → modificateurs de sim (nettoyés après le quart)
+    this._syncLiveSchemes();
+    userT._matchMod = this._liveMods(lg);
+    if (lg.timeoutPending) oppT._matchMod = { hot: -0.035 };
     const portion = 0.25;
     const qh = genTeamBox(H, A, portion);
     const qa = genTeamBox(A, H, portion);
     if (lg.q === 0) qh.score += randInt(1, 4);  // avantage terrain au 1er quart
+    const qUser = (H === userT) ? qh : qa, qOpp = (H === userT) ? qa : qh;
+    this._buildLiveFeedback(lg, qUser, qOpp);
+    delete userT._matchMod; delete oppT._matchMod; lg.timeoutPending = false;
     mergeBox(lg.home, qh); mergeBox(lg.away, qa);
     lg.q++;
     lg.quarters.push({ q: lg.q, hs: qh.score, as: qa.score });

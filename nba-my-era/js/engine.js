@@ -45,7 +45,16 @@ const TRAINING_FOCUS = {
   defense:    { name: 'Défense', attr: 'defense' },
   athletic:   { name: 'Athlétisme', attr: 'athletic' },
 };
-function genStaffName() { return (typeof COACH_NAMES !== 'undefined') ? pick(COACH_NAMES) : (pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES)); }
+function genStaffName(exclude) {
+  const pool = (typeof COACH_NAMES !== 'undefined') ? COACH_NAMES : null;
+  if (pool) { for (let i = 0; i < 8; i++) { const n = pick(pool); if (!exclude || !exclude.has(n)) return n; } return pick(pool); }
+  return pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES);
+}
+// Entraîneur principal réel d'une franchise pour une époque donnée (ou null).
+function realHeadCoach(eraId, teamId) {
+  const era = eraId || 'modern';
+  return (typeof HEAD_COACHES !== 'undefined' && HEAD_COACHES[era] && HEAD_COACHES[era][teamId]) || null;
+}
 function genStaffMarket() {
   const m = {};
   STAFF_ROLES.forEach(([k]) => {
@@ -55,6 +64,19 @@ function genStaffMarket() {
 }
 function defaultStaff() {
   const s = {}; STAFF_ROLES.forEach(([k]) => s[k] = { name: genStaffName(), quality: 74, salary: 4 }); return s;
+}
+// Staff de départ réaliste : vrai entraîneur principal de la franchise (avec sa
+// note) + adjoints crédibles (noms réels distincts, notes proches du principal).
+function realStaffFor(eraId, teamId) {
+  const hc = realHeadCoach(eraId, teamId);
+  const headQ = hc ? hc.quality : randInt(74, 84);
+  const used = new Set(hc ? [hc.name] : []);
+  const s = {};
+  STAFF_ROLES.forEach(([k]) => {
+    if (k === 'head') { s.head = { name: hc ? hc.name : genStaffName(used), quality: headQ, salary: round1(1 + (headQ - 58) * 0.28) }; used.add(s.head.name); }
+    else { const q = clamp(headQ + randInt(-8, 3), 60, 94); const nm = genStaffName(used); used.add(nm); s[k] = { name: nm, quality: q, salary: round1(0.8 + (q - 58) * 0.22) }; }
+  });
+  return s;
 }
 // Applique les qualités du staff (state.staff) aux facteurs de coaching de l'équipe utilisateur.
 function applyUserStaff(team, staff) {
@@ -270,8 +292,9 @@ function buildLeague(userTeamId, eraId) {
       minutes: {},                  // id -> minutes cible
       priorities: [],               // hiérarchie offensive (ids), calculée ci-dessous
       offScheme: off, defScheme: def,
-      // facteurs de coaching (qualité 62-90) — l'utilisateur les surchargera via son staff
-      coachOff: randInt(66, 86), coachDef: randInt(66, 86), coachDev: randInt(66, 88), coachHealth: randInt(66, 86),
+      // facteurs de coaching — issus du vrai entraîneur de la franchise si connu
+      ...(function () { const hc = realHeadCoach(eraId, t.id); const cq = hc ? hc.quality : randInt(66, 86);
+        return { coachName: hc ? hc.name : genStaffName(), coachOff: clamp(cq + randInt(-3, 2), 60, 97), coachDef: clamp(cq + randInt(-4, 2), 60, 97), coachDev: randInt(66, 88), coachHealth: randInt(66, 86) }; })(),
       w: 0, l: 0, streak: 0,
       ptsFor: 0, ptsAgn: 0,
     };
@@ -441,7 +464,14 @@ function simGame(home, away, opts = {}) {
 // 0.25 → un quart-temps). Intègre le schéma offensif + la hiérarchie de l'équipe,
 // et le schéma défensif de l'adversaire.
 function genTeamBox(team, opp, portion = 1) {
-  const off = schemeOff(team);
+  // Ajustements de décisions en direct (tempo / priorité / temps mort).
+  const mm = team._matchMod || {};
+  const off = Object.assign({}, schemeOff(team));
+  if (mm.three) off.three *= mm.three;
+  if (mm.inside) off.inside *= mm.inside;
+  if (mm.tov) off.tov *= mm.tov;
+  if (mm.ast) off.ast *= mm.ast;
+  if (mm.pace) off.pace *= mm.pace;
   const oppD = schemeDef(opp);
   const oppDefR = defenseRating(opp);
 
@@ -463,6 +493,7 @@ function genTeamBox(team, opp, portion = 1) {
       if (team.offScheme === 'motion') pm = 1 + (pm - 1) * 0.5;
       else if (team.offScheme === 'isoStars') { pm = 1 + (pm - 1) * 1.2; if (r < 2) pm *= off.star; }
       usage *= pm;
+      if (r === 0 && mm.starBoost) usage *= mm.starBoost;  // décision « donner le ballon à la star »
     }
     // Le schéma favorise certains profils (qui prend les tirs dépend de la stratégie)
     usage *= schemeFit(b.p, team.offScheme);

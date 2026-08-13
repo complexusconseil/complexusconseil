@@ -73,6 +73,77 @@ const COACH_NAMES = [
   'David Fizdale', 'Igor Kokoškov', 'Ettore Messina', 'Sam Cassell', 'Adrian Griffin', 'Darko Rajaković',
 ];
 
+// Entraîneurs principaux réels par époque et par franchise (best-effort) avec
+// une « note » reflétant leur standing/talent à l'époque. Sert à nommer le staff
+// et à pondérer le coaching de chaque équipe (l'utilisateur reçoit le vrai coach
+// de sa franchise, ajustable ensuite via le marché du staff).
+const HEAD_COACHES = {
+  modern: {
+    ATL: { name: 'Quin Snyder', quality: 86 }, BOS: { name: 'Joe Mazzulla', quality: 87 },
+    BKN: { name: 'Jordi Fernández', quality: 78 }, CHA: { name: 'Charles Lee', quality: 76 },
+    CHI: { name: 'Billy Donovan', quality: 82 }, CLE: { name: 'Kenny Atkinson', quality: 85 },
+    DAL: { name: 'Jason Kidd', quality: 85 }, DEN: { name: 'David Adelman', quality: 80 },
+    DET: { name: 'J.B. Bickerstaff', quality: 81 }, GSW: { name: 'Steve Kerr', quality: 92 },
+    HOU: { name: 'Ime Udoka', quality: 86 }, IND: { name: 'Rick Carlisle', quality: 89 },
+    LAC: { name: 'Tyronn Lue', quality: 88 }, LAL: { name: 'JJ Redick', quality: 80 },
+    MEM: { name: 'Tuomas Iisalo', quality: 77 }, MIA: { name: 'Erik Spoelstra', quality: 93 },
+    MIL: { name: 'Doc Rivers', quality: 84 }, MIN: { name: 'Chris Finch', quality: 86 },
+    NOP: { name: 'Willie Green', quality: 79 }, NYK: { name: 'Mike Brown', quality: 84 },
+    OKC: { name: 'Mark Daigneault', quality: 91 }, ORL: { name: 'Jamahl Mosley', quality: 83 },
+    PHI: { name: 'Nick Nurse', quality: 86 }, PHX: { name: 'Jordan Ott', quality: 76 },
+    POR: { name: 'Chauncey Billups', quality: 80 }, SAC: { name: 'Doug Christie', quality: 76 },
+    SAS: { name: 'Mitch Johnson', quality: 79 }, TOR: { name: 'Darko Rajaković', quality: 79 },
+    UTA: { name: 'Will Hardy', quality: 81 }, WAS: { name: 'Brian Keefe', quality: 74 },
+  },
+  e1968: {
+    BOS: { name: 'Bill Russell', quality: 88 }, PHI: { name: 'Alex Hannum', quality: 91 },
+    LAL: { name: 'Butch van Breda Kolff', quality: 83 }, NYK: { name: 'Red Holzman', quality: 90 },
+    DET: { name: 'Donnie Butcher', quality: 75 }, ATL: { name: 'Richie Guerin', quality: 85 },
+    GSW: { name: 'Bill Sharman', quality: 89 }, SAC: { name: 'Ed Jucker', quality: 79 },
+    CHI: { name: 'Johnny Kerr', quality: 80 }, OKC: { name: 'Al Bianchi', quality: 76 },
+  },
+  e1986: {
+    BOS: { name: 'K.C. Jones', quality: 88 }, LAL: { name: 'Pat Riley', quality: 93 },
+    PHI: { name: 'Matt Guokas', quality: 78 }, MIL: { name: 'Don Nelson', quality: 90 },
+    HOU: { name: 'Bill Fitch', quality: 86 }, DET: { name: 'Chuck Daly', quality: 89 },
+    ATL: { name: 'Mike Fratello', quality: 85 }, DAL: { name: 'Dick Motta', quality: 84 },
+    POR: { name: 'Jack Ramsay', quality: 89 }, DEN: { name: 'Doug Moe', quality: 85 },
+    UTA: { name: 'Frank Layden', quality: 82 }, PHX: { name: 'John MacLeod', quality: 82 },
+    CHI: { name: 'Stan Albeck', quality: 78 }, NYK: { name: 'Hubie Brown', quality: 85 },
+    WAS: { name: 'Gene Shue', quality: 80 }, BKN: { name: 'Dave Wohl', quality: 75 },
+  },
+  e1996: {
+    CHI: { name: 'Phil Jackson', quality: 95 }, OKC: { name: 'George Karl', quality: 88 },
+    ORL: { name: 'Brian Hill', quality: 80 }, HOU: { name: 'Rudy Tomjanovich', quality: 89 },
+    SAS: { name: 'Bob Hill', quality: 78 }, UTA: { name: 'Jerry Sloan', quality: 92 },
+    LAL: { name: 'Del Harris', quality: 80 }, NYK: { name: 'Don Nelson', quality: 88 },
+    IND: { name: 'Larry Brown', quality: 90 }, PHX: { name: 'Cotton Fitzsimmons', quality: 79 },
+    POR: { name: 'P.J. Carlesimo', quality: 82 }, PHI: { name: 'John Lucas', quality: 74 },
+    DET: { name: 'Doug Collins', quality: 84 }, MIA: { name: 'Pat Riley', quality: 93 },
+    ATL: { name: 'Lenny Wilkens', quality: 90 }, DAL: { name: 'Dick Motta', quality: 79 },
+  },
+  e2016: {
+    GSW: { name: 'Steve Kerr', quality: 94 }, CLE: { name: 'Tyronn Lue', quality: 80 },
+    SAS: { name: 'Gregg Popovich', quality: 96 }, OKC: { name: 'Billy Donovan', quality: 83 },
+    TOR: { name: 'Dwane Casey', quality: 85 }, LAC: { name: 'Doc Rivers', quality: 87 },
+    MIA: { name: 'Erik Spoelstra', quality: 90 }, BOS: { name: 'Brad Stevens', quality: 86 },
+    ATL: { name: 'Mike Budenholzer', quality: 88 }, HOU: { name: 'J.B. Bickerstaff', quality: 74 },
+    POR: { name: 'Terry Stotts', quality: 84 }, IND: { name: 'Frank Vogel', quality: 84 },
+    DAL: { name: 'Rick Carlisle', quality: 89 }, MEM: { name: 'Dave Joerger', quality: 82 },
+    WAS: { name: 'Randy Wittman', quality: 76 }, NOP: { name: 'Alvin Gentry', quality: 80 },
+  },
+  euro: {
+    RMA: { name: 'Chus Mateo', quality: 85 }, FCB: { name: 'Joan Peñarroya', quality: 80 },
+    PAN: { name: 'Ergin Ataman', quality: 91 }, OLY: { name: 'Georgios Bartzokas', quality: 88 },
+    FEN: { name: 'Šarūnas Jasikevičius', quality: 88 }, EFS: { name: 'Igor Kokoškov', quality: 80 },
+    MIL: { name: 'Ettore Messina', quality: 86 }, VIR: { name: 'Duško Ivanović', quality: 82 },
+    MON: { name: 'Vassilis Spanoulis', quality: 85 }, ASV: { name: 'Guillaume Vizade', quality: 74 },
+    BAY: { name: 'Gordon Herbert', quality: 83 }, ZAL: { name: 'Andrea Trinchieri', quality: 83 },
+    PAR: { name: 'Željko Obradović', quality: 93 }, RED: { name: 'Saša Obradović', quality: 82 },
+    MAC: { name: 'Oded Kattash', quality: 80 }, BAS: { name: 'Paolo Galbiati', quality: 76 },
+  },
+};
+
 const LAST_NAMES = [
   'Carter','Robinson','Thompson','Bryant','Walker','Hayes','Coleman','Foster','Brooks','Reed',
   'Bennett','Morgan','Franklin','Sullivan','Freeman','Newton','Grant','Wallace','Bishop','Stone',

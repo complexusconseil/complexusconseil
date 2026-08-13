@@ -631,9 +631,8 @@ const UI = {
       <p class="center muted">${home?'À domicile':'À l\'extérieur'} · Note ${teamOverall(ut)} vs ${teamOverall(ot)}</p>
       <p class="center muted" style="font-size:12.5px">Tactiques : ⚔️ ${OFF_SCHEMES[ut.offScheme].name} · 🛡️ ${DEF_SCHEMES[ut.defScheme].name} <small>(modifiables dans l'onglet Tactiques ou en direct)</small></p>
       <div class="row" style="justify-content:center;margin-top:8px;flex-wrap:wrap">
-        <button class="btn primary" data-act="watch-tv">📺 Regarder (diffusion TV)</button>
-        <button class="btn ghost" data-act="startlive">🏀 Jouer (quart par quart)</button>
-        <button class="btn ghost" data-act="watch3d">🎥 Vue 3D</button>
+        <button class="btn primary" data-act="startlive">🏀 Coacher le match (décisions)</button>
+        <button class="btn ghost" data-act="watch-tv">📺 Regarder (diffusion TV)</button>
         <button class="btn ghost" data-act="simgame">⏩ Simuler rapidement</button>
       </div>
     </div>
@@ -664,52 +663,79 @@ const UI = {
       ${row('Pts marqués/m', gp(a) ? a.ptsFor / gp(a) : 0, gp(bTeam) ? bTeam.ptsFor / gp(bTeam) : 0, v => this.fmt(v))}
       ${row('Chimie', teamChemistry(a), teamChemistry(bTeam), v => Math.round(v))}
       <div class="row" style="justify-content:space-between;padding:4px 0"><b style="min-width:90px;font-size:12px">${scorer(a)}</b><span class="muted" style="font-size:12px">Leader</span><b style="min-width:90px;text-align:right;font-size:12px">${scorer(bTeam)}</b></div>
+      <div class="row" style="justify-content:space-between;padding:4px 0;border-top:1px solid var(--border)">
+        <b style="min-width:90px;font-size:12px">🧑‍🏫 ${a.coachName || (Game.state.staff && Game.state.staff.head.name) || '—'}</b>
+        <span class="muted" style="font-size:12px">Entraîneur</span>
+        <b style="min-width:90px;text-align:right;font-size:12px">🧑‍🏫 ${bTeam.coachName || '—'}</b></div>
       <div class="row" style="justify-content:center;margin-top:4px"><span class="muted" style="font-size:12px">⚔️ ${OFF_SCHEMES[a.offScheme].name} · 🛡️ ${DEF_SCHEMES[a.defScheme].name} &nbsp;|&nbsp; ⚔️ ${OFF_SCHEMES[bTeam.offScheme].name} · 🛡️ ${DEF_SCHEMES[bTeam.defScheme].name}</span></div>
     </div>`;
   },
 
   // Vue du match en cours : score, changement de schéma en direct, quart par quart
   liveGameView() {
-    const s = Game.state; const lg = s.liveGame; const ut = Game.ut();
+    const s = Game.state; const lg = s.liveGame;
     const homeId = lg.gameRef.home, awayId = lg.gameRef.away;
     const meHome = homeId === s.userTeam;
     const myId = s.userTeam, oppId = meHome ? awayId : homeId;
     const myScore = meHome ? lg.home.score : lg.away.score;
     const oppScore = meHome ? lg.away.score : lg.home.score;
-    const qLabel = lg.done ? 'Terminé' : (lg.q >= 4 ? 'Prolongation' : `${lg.q}ᵉ quart-temps joué`);
-    const qRows = lg.quarters.map(q => {
-      const mine = meHome ? q.hs : q.as, opp = meHome ? q.as : q.hs;
-      return `<tr><td>Q${q.q}</td><td>${mine}</td><td>${opp}</td></tr>`;
-    }).join('');
-    const schemeSel = (obj, cur, attr, label) => `<div style="flex:1;min-width:180px">
-      <div class="muted" style="font-size:12px;margin-bottom:4px">${label}</div>
-      <select data-${attr}-live style="width:100%">${Object.entries(obj).map(([k, v]) =>
-        `<option value="${k}" ${cur === k ? 'selected' : ''}>${v.name}</option>`).join('')}</select></div>`;
+    const diff = myScore - oppScore;
+    const nextQ = lg.q >= 4 ? 'Prolongation' : `Q${lg.q + 1}`;
+    const qLabel = lg.done ? 'Match terminé' : (lg.q === 0 ? `Coup d'envoi · ${nextQ}` : `Fin du Q${lg.q} · ${nextQ} à jouer`);
 
-    const boxMini = lg.done ? '' : `<div class="card"><h3>Ajustements en direct</h3>
-      <div class="row">${schemeSel(OFF_SCHEMES, ut.offScheme, 'off', '⚔️ Attaque')}${schemeSel(DEF_SCHEMES, ut.defScheme, 'def', '🛡️ Défense')}</div>
-      <p class="muted" style="font-size:12px;margin-top:6px">Changez de système avant de lancer le quart-temps suivant.</p></div>`;
+    // Momentum + détection de série (run) sur le dernier quart
+    const momPct = Math.max(6, Math.min(94, 50 + diff * 2.2));
+    let runMsg = '', runCls = '';
+    if (lg.quarters.length && !lg.done) {
+      const q = lg.quarters[lg.quarters.length - 1];
+      const net = meHome ? q.hs - q.as : q.as - q.hs;
+      if (net <= -6) { runMsg = `⚠️ L'adversaire a passé un ${-net}-0 d'écart le dernier quart. Un temps mort peut casser la dynamique.`; runCls = 'bad'; }
+      else if (net >= 6) { runMsg = `✅ Vous êtes lancés (+${net} le dernier quart) — enfoncez le clou !`; runCls = 'good'; }
+    }
+
+    const decRow = (kind, label, opts) => `<div class="dec-row">
+        <span class="dec-lbl">${label}</span>
+        <div class="dec-opts">${opts.map(([v, txt]) =>
+          `<button class="chip dec ${lg.dec[kind] === v ? 'on' : ''}" data-act="live-dec" data-kind="${kind}" data-val="${v}"${lg.done ? ' disabled' : ''}>${txt}</button>`).join('')}</div>
+      </div>`;
+    const decisions = lg.done ? '' : `<div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h3 style="margin:0">🎛️ Vos décisions</h3>
+          <button class="btn ${lg.timeouts > 0 ? 'ghost' : ''} sm" data-act="live-timeout"${lg.timeouts <= 0 ? ' disabled' : ''}>⏱️ Temps mort (${lg.timeouts})</button>
+        </div>
+        ${decRow('tempo', 'Rythme', [['slow', '🐢 Ralentir'], ['normal', '⚖️ Normal'], ['push', '🏃 Accélérer']])}
+        ${decRow('focus', 'Priorité', [['balanced', '⚖️ Équilibré'], ['star', '⭐ Star'], ['inside', '🏀 Intérieur'], ['outside', '🎯 Extérieur']])}
+        ${decRow('defense', 'Défense', [['standard', '⚖️ Standard'], ['press', '🔥 Pressing'], ['beton', '🛡️ Béton']])}
+        <p class="muted" style="font-size:11.5px;margin-top:6px">Ajustez avant chaque quart : vos choix modifient réellement la simulation.</p>
+      </div>`;
+
+    const feedback = (lg.feedback && !lg.done) ? `<div class="live-feedback">${lg.feedback}</div>` : '';
 
     return `<div class="card">
-        <div class="row" style="justify-content:space-between"><h2>Match en direct</h2><span class="chip">${qLabel}${lg.ot?` · ${lg.ot} prol.`:''}</span></div>
-        <div class="scoreboard">
+        <div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">🏀 Match en direct</h2><span class="chip">${qLabel}${lg.ot ? ` · ${lg.ot} prol.` : ''}</span></div>
+        <div class="scoreboard" style="margin-top:8px">
           <div class="tm">${this.badge(myId,54)}<div><b>${teamById(myId).name}</b></div><div class="sc ${myScore>=oppScore?'win':''}">${myScore}</div></div>
           <div style="font-weight:800;color:var(--muted)">—</div>
           <div class="tm">${this.badge(oppId,54)}<div><b>${teamById(oppId).name}</b></div><div class="sc ${oppScore>myScore?'win':''}">${oppScore}</div></div>
         </div>
-        <div class="row" style="justify-content:center;margin-top:6px">
+        <div class="mom-line"><span class="mom-end">${teamById(oppId).id}</span>
+          <div class="mom-bar"><div class="mom-fill" style="width:${momPct}%;background:${teamById(myId).c1}"></div><div class="mom-mark" style="left:${momPct}%"></div></div>
+          <span class="mom-end">${teamById(myId).id}</span></div>
+        ${runMsg ? `<div class="run-alert ${runCls}">${runMsg}</div>` : ''}
+        ${feedback}
+        <div class="row" style="justify-content:center;margin-top:10px">
           ${lg.done
             ? `<button class="btn primary" data-act="finish-live">📋 Feuille de match & résultat</button>`
-            : `<button class="btn primary" data-act="sim-quarter">▶ Jouer le quart-temps suivant</button>
-               <button class="btn ghost" data-act="finish-live">⏩ Terminer le match</button>`}
+            : `<button class="btn primary" data-act="sim-quarter">▶ Jouer ${nextQ}</button>
+               <button class="btn ghost" data-act="finish-live">⏩ Simuler la fin</button>`}
         </div>
       </div>
-      ${boxMini}
+      ${decisions}
       ${lg.quarters.length ? `<div class="card"><h3>Score par quart-temps</h3>
-        <div class="table-wrap"><table><thead><tr><th></th><th>${teamById(myId).id}</th><th>${teamById(oppId).id}</th></tr></thead><tbody>${
-          lg.quarters.map(q => { const mine = meHome ? q.hs : q.as, opp = meHome ? q.as : q.hs;
-            return `<tr><td>Q${q.q}</td><td><b>${mine}</b></td><td>${opp}</td></tr>`; }).join('')
-        }</tbody></table></div></div>` : ''}`;
+        <div class="table-wrap"><table><thead><tr><th></th>${lg.quarters.map(q=>`<th>Q${q.q}</th>`).join('')}<th>Total</th></tr></thead><tbody>
+          <tr><td class="name">${teamById(myId).id}</td>${lg.quarters.map(q=>`<td><b>${meHome?q.hs:q.as}</b></td>`).join('')}<td><b>${myScore}</b></td></tr>
+          <tr><td class="name">${teamById(oppId).id}</td>${lg.quarters.map(q=>`<td>${meHome?q.as:q.hs}</td>`).join('')}<td>${oppScore}</td></tr>
+        </tbody></table></div></div>` : ''}`;
   },
 
   recentResults() {
@@ -1480,7 +1506,7 @@ const UI = {
       if(confirm('Libérer ce joueur ?')){Game.releasePlayer(+b.dataset.release);this.render();}}));
 
     // actions génériques
-    m.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>this.action(b.dataset.act)));
+    m.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>this.action(b.dataset.act, b)));
 
     // lineup / minutes
     m.querySelectorAll('[data-line]').forEach(sel=>sel.addEventListener('change',()=>{Game.setLineup(sel.dataset.line,+sel.value);this.render();}));
@@ -1529,9 +1555,6 @@ const UI = {
     // tactiques : schémas
     m.querySelectorAll('[data-off]').forEach(el=>el.addEventListener('change',()=>{Game.setOffScheme(el.dataset.off);this.render();}));
     m.querySelectorAll('[data-def]').forEach(el=>el.addEventListener('change',()=>{Game.setDefScheme(el.dataset.def);this.render();}));
-    // schémas en direct (match)
-    const offLive=m.querySelector('[data-off-live]'); if(offLive)offLive.addEventListener('change',()=>{Game.setOffScheme(offLive.value);this.toast('Attaque : '+OFF_SCHEMES[offLive.value].name);});
-    const defLive=m.querySelector('[data-def-live]'); if(defLive)defLive.addEventListener('change',()=>{Game.setDefScheme(defLive.value);this.toast('Défense : '+DEF_SCHEMES[defLive.value].name);});
     // priorités
     m.querySelectorAll('[data-prio-up]').forEach(b=>b.addEventListener('click',()=>{Game.movePriority(+b.dataset.prioUp,-1);this.render();}));
     m.querySelectorAll('[data-prio-down]').forEach(b=>b.addEventListener('click',()=>{Game.movePriority(+b.dataset.prioDown,1);this.render();}));
@@ -1558,7 +1581,7 @@ const UI = {
     const exTB=this.el('ex-teamB'); if(exTB)exTB.addEventListener('change',()=>{this._exTeamB=exTB.value;});
   },
 
-  action(act) {
+  action(act, el) {
     const R = () => this.render();
     switch (act) {
       case 'simday': Game.simulateDay(); Game.checkSeasonEnd(); Game.save(); R(); break;
@@ -1569,6 +1592,8 @@ const UI = {
       case 'startlive': Game.startLiveGame(); this.tab='play'; R(); break;
       case 'watch-tv': { const pv=Game.previewUserGame(); if(pv)this.openBroadcast(pv.g,pv.res); else R(); break; }
       case 'watch3d': { const pv=Game.previewUserGame(); if(pv)this.open3D(pv.g,pv.res); else R(); break; }
+      case 'live-dec': { if(el) Game.setLiveDecision(el.dataset.kind, el.dataset.val); R(); break; }
+      case 'live-timeout': { if(Game.liveTimeout()) this.toast('⏱️ Temps mort posé — effet au prochain quart'); R(); break; }
       case 'sim-quarter': Game.simQuarter(); R(); break;
       case 'finish-live': {
         const out = Game.finishLiveGame();

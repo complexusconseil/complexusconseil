@@ -250,6 +250,49 @@ const UI = {
     });
   },
 
+  // Diffusion « TV » 2D animée du match (shot chart, momentum, commentaire).
+  openBroadcast(g, res) {
+    if (!window.Broadcast) { const out = { game: g, res }; Game.commitUserGame(g, res); this.showGameResult(g, res); return; }
+    const homeMeta = teamById(g.home), awayMeta = teamById(g.away);
+    const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'bc-bg';
+    bg.innerHTML = `<div style="width:min(1180px,97vw);background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="scoreboard" style="padding:8px 10px;align-items:center">
+          <div class="tm">${this.badge(g.away,34)}<div><b>${awayMeta.name}</b></div><div class="sc" id="bc-as">0</div></div>
+          <div style="text-align:center;min-width:96px">
+            <div class="chip" id="bc-per" style="margin-bottom:2px">Q1</div>
+            <div class="mono" id="bc-clock" style="font-size:20px;font-weight:800">12:00</div>
+          </div>
+          <div class="tm">${this.badge(g.home,34)}<div><b>${homeMeta.name}</b></div><div class="sc" id="bc-hs">0</div></div>
+        </div>
+        <div id="bc-stage" style="width:100%;background:#0b0e14"></div>
+        <div class="row" style="padding:10px;align-items:center">
+          <div class="muted" style="flex:1;font-size:12px">📺 Diffusion en direct · shot chart, momentum et commentaire live</div>
+          <button class="btn ghost" id="bc-skip">⏩ Passer</button>
+          <button class="btn primary" id="bc-done" disabled style="opacity:.55">Match en cours…</button>
+        </div></div>`;
+    document.body.appendChild(bg);
+    const stage = this.el('bc-stage');
+    const hs = this.el('bc-hs'), as = this.el('bc-as');
+    const per = this.el('bc-per'), clk = this.el('bc-clock');
+    const doneBtn = this.el('bc-done');
+    let ctrl;
+    const finishUI = () => { doneBtn.disabled = false; doneBtn.style.opacity = '1'; doneBtn.textContent = 'Feuille de match →'; };
+    try {
+      ctrl = Broadcast.play(stage, homeMeta, awayMeta, res, {
+        onScore: (h, a) => { hs.textContent = h; as.textContent = a; },
+        onClock: (label, clock) => { per.textContent = label; clk.textContent = clock; },
+        onDone: finishUI, speed: 1,
+      });
+    } catch (err) {
+      bg.remove(); Game.commitUserGame(g, res); this.showGameResult(g, res); return;
+    }
+    this.el('bc-skip').addEventListener('click', () => { ctrl.skip(); });
+    doneBtn.addEventListener('click', () => {
+      if (doneBtn.disabled) return;
+      ctrl.stop(); bg.remove(); Game.commitUserGame(g, res); this.showGameResult(g, res);
+    });
+  },
+
   firedModal() {
     this.modal(`<h2 style="color:var(--red)">⚠️ Vous avez été limogé</h2>
       <p>La direction a perdu confiance après des objectifs non atteints. Le propriétaire vous propose toutefois un dernier sursis pour redresser la barre.</p>
@@ -588,8 +631,9 @@ const UI = {
       <p class="center muted">${home?'À domicile':'À l\'extérieur'} · Note ${teamOverall(ut)} vs ${teamOverall(ot)}</p>
       <p class="center muted" style="font-size:12.5px">Tactiques : ⚔️ ${OFF_SCHEMES[ut.offScheme].name} · 🛡️ ${DEF_SCHEMES[ut.defScheme].name} <small>(modifiables dans l'onglet Tactiques ou en direct)</small></p>
       <div class="row" style="justify-content:center;margin-top:8px;flex-wrap:wrap">
-        <button class="btn primary" data-act="watch3d">🎥 Regarder en 3D</button>
+        <button class="btn primary" data-act="watch-tv">📺 Regarder (diffusion TV)</button>
         <button class="btn ghost" data-act="startlive">🏀 Jouer (quart par quart)</button>
+        <button class="btn ghost" data-act="watch3d">🎥 Vue 3D</button>
         <button class="btn ghost" data-act="simgame">⏩ Simuler rapidement</button>
       </div>
     </div>
@@ -1523,6 +1567,7 @@ const UI = {
       case 'checkend': Game.checkSeasonEnd(); R(); break;
       // match interactif
       case 'startlive': Game.startLiveGame(); this.tab='play'; R(); break;
+      case 'watch-tv': { const pv=Game.previewUserGame(); if(pv)this.openBroadcast(pv.g,pv.res); else R(); break; }
       case 'watch3d': { const pv=Game.previewUserGame(); if(pv)this.open3D(pv.g,pv.res); else R(); break; }
       case 'sim-quarter': Game.simQuarter(); R(); break;
       case 'finish-live': {

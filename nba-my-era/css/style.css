@@ -229,3 +229,31 @@ input.mins { width: 58px; text-align: center; }
 }
 .series .s-row { display:flex; justify-content: space-between; padding: 3px 0; font-size: 13px; }
 .series .s-row.won { color: var(--green); font-weight: 700; }
+
+/* -------------------------- Diffusion TV (Broadcast) ---------------------- */
+.bc-wrap { display: flex; gap: 10px; padding: 10px; }
+.bc-left { flex: 1 1 62%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.bc-right { flex: 1 1 38%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.bc-court { display: block; width: 100%; height: auto; aspect-ratio: 47 / 25; border-radius: 8px; border: 1px solid var(--border); background: #241a10; box-shadow: inset 0 0 40px rgba(0,0,0,.5); }
+.bc-mark { transition: opacity .2s; }
+@keyframes bcPop { 0%{ transform: scale(0); } 70%{ transform: scale(1.5); } 100%{ transform: scale(1); } }
+.bc-mark.made { transform-box: fill-box; transform-origin: center; animation: bcPop .4s ease-out; }
+.bc-mom { display: flex; align-items: center; gap: 8px; }
+.bc-mom-badge { color: #fff; font-weight: 800; font-size: 11px; padding: 2px 7px; border-radius: 6px; min-width: 34px; text-align: center; }
+.bc-mom-track { position: relative; flex: 1; height: 14px; border-radius: 8px; overflow: hidden; background: var(--bg2); display: flex; }
+.bc-mom-fillA, .bc-mom-fillH { height: 100%; opacity: .55; transition: width .4s ease; }
+.bc-mom-fillA { width: 50%; } .bc-mom-fillH { width: 50%; }
+.bc-mom-dot { position: absolute; top: -3px; left: 50%; width: 4px; height: 20px; background: #fff; border-radius: 3px; transform: translateX(-50%); transition: left .4s ease; box-shadow: 0 0 6px rgba(255,255,255,.8); }
+.bc-leaders { display: flex; gap: 8px; }
+.bc-lead-col { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; }
+.bc-lead-team { font-weight: 700; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.bc-lead-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 1px 0; }
+.bc-lead-row b { color: var(--accent); }
+.bc-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.bc-feed { flex: 1; overflow-y: auto; max-height: 40vh; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+.bc-line { font-size: 12.5px; padding: 4px 2px; border-bottom: 1px solid var(--border); animation: bcSlide .25s ease-out; }
+@keyframes bcSlide { from{ opacity: 0; transform: translateY(-6px); } to{ opacity: 1; transform: none; } }
+.bc-when { font-size: 10px; font-weight: 700; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; color: var(--muted); }
+.bc-pts { color: var(--green); }
+#bc-stage { min-height: 300px; }
+@media (max-width: 720px) { .bc-wrap { flex-direction: column; } }

@@ -390,3 +390,94 @@ const ERA_ROSTERS_EXTRA = {
     });
   });
 })();
+
+/* ==========================================================================
+   Second passage de profondeur : bancs profonds réels (9e-12e homme) vérifiés,
+   pour porter chaque équipe d'époque à ~11-12 joueurs. Clés « name » ou « n »
+   tolérées et normalisées à la fusion.
+   ========================================================================== */
+const ERA_ROSTERS_EXTRA2 = {
+  e1968: {
+    "BOS":[{"n":"Tom Thacker","pos":"SG","ovr":65,"age":28},{"n":"Mal Graham","pos":"PG","ovr":61,"age":22},{"n":"Rick Weitzman","pos":"SG","ovr":60,"age":21}],
+    "PHI":[{"n":"Larry Costello","pos":"PG","ovr":68,"age":36},{"n":"Craig Raymond","pos":"C","ovr":61,"age":24},{"n":"Jim Reid","pos":"PF","ovr":60,"age":23}],
+    "LAL":[{"n":"John Wetzel","pos":"SG","ovr":62,"age":24},{"n":"Jim Barnes","pos":"C","ovr":66,"age":27},{"n":"Cliff Anderson","pos":"PF","ovr":61,"age":24}],
+    "NYK":[{"n":"Howard Komives","pos":"PG","ovr":68,"age":26}],
+    "DET":[{"n":"Len Chappell","pos":"PF","ovr":66,"age":27},{"n":"Wayne Hightower","pos":"SF","ovr":65,"age":28}],
+    "ATL":[{"n":"Dick Snyder","pos":"SG","ovr":66,"age":24},{"n":"Tom Workman","pos":"SF","ovr":60,"age":24}],
+    "GSW":[{"n":"Joe Ellis","pos":"SF","ovr":64,"age":24},{"n":"Bill Turner","pos":"PF","ovr":61,"age":24},{"n":"Bob Warlick","pos":"SG","ovr":63,"age":28}],
+    "SAC":[{"n":"Jim Fox","pos":"C","ovr":62,"age":24}],
+    "CHI":[{"n":"Dave Schellhase","pos":"SG","ovr":60,"age":24},{"n":"Craig Spitzer","pos":"C","ovr":60,"age":22},{"n":"Reggie Harding","pos":"C","ovr":63,"age":25}],
+    "OKC":[{"n":"George Wilson","pos":"PF","ovr":63,"age":25},{"n":"Henry Akin","pos":"C","ovr":60,"age":23},{"n":"Plummer Lott","pos":"SF","ovr":60,"age":23}]
+  },
+  e1986: {
+    "BOS":[{"name":"Sam Vincent","pos":"PG","age":22,"ovr":66}],
+    "LAL":[{"name":"Mitch Kupchak","pos":"PF","age":31,"ovr":66},{"name":"Petur Gudmundsson","pos":"C","age":27,"ovr":61}],
+    "PHI":[{"name":"Terry Catledge","pos":"PF","age":22,"ovr":66},{"name":"Greg Stokes","pos":"C","age":22,"ovr":61}],
+    "MIL":[{"name":"Mike Glenn","pos":"SG","age":30,"ovr":65},{"name":"Kenny Fields","pos":"SF","age":24,"ovr":63},{"name":"Charles Davis","pos":"PF","age":27,"ovr":62}],
+    "HOU":[{"name":"John Lucas","pos":"PG","age":32,"ovr":68},{"name":"Craig Ehlo","pos":"SG","age":24,"ovr":64},{"name":"Steve Harris","pos":"SG","age":22,"ovr":62},{"name":"Granville Waiters","pos":"C","age":25,"ovr":60}],
+    "DET":[{"name":"Tony Campbell","pos":"SF","age":23,"ovr":65}],
+    "ATL":[{"name":"Eddie Johnson","pos":"PG","age":31,"ovr":66},{"name":"Scott Hastings","pos":"C","age":25,"ovr":61},{"name":"Sedric Toney","pos":"PG","age":23,"ovr":60}],
+    "DAL":[{"name":"Jay Vincent","pos":"PF","age":26,"ovr":68},{"name":"Uwe Blab","pos":"C","age":24,"ovr":60},{"name":"Wallace Bryant","pos":"C","age":26,"ovr":60},{"name":"Charlie Sitton","pos":"PF","age":24,"ovr":60}],
+    "POR":[{"name":"Steve Colter","pos":"PG","age":23,"ovr":65},{"name":"Caldwell Jones","pos":"C","age":35,"ovr":64}],
+    "DEN":[{"name":"Mike Evans","pos":"PG","age":30,"ovr":64},{"name":"Blair Rasmussen","pos":"C","age":23,"ovr":63},{"name":"Elston Turner","pos":"SG","age":26,"ovr":62},{"name":"Willie White","pos":"SG","age":24,"ovr":60}],
+    "UTA":[{"name":"Fred Roberts","pos":"SF","age":25,"ovr":63},{"name":"Pace Mannion","pos":"SG","age":25,"ovr":61},{"name":"Carey Scurry","pos":"SF","age":23,"ovr":60}],
+    "PHX":[{"name":"Bernard Thompson","pos":"SG","age":23,"ovr":62},{"name":"Michael Holton","pos":"PG","age":24,"ovr":61},{"name":"Charles Pittman","pos":"SF","age":28,"ovr":60},{"name":"Nick Vanos","pos":"C","age":22,"ovr":60}],
+    "CHI":[{"name":"George Gervin","pos":"SG","age":33,"ovr":70},{"name":"Jawann Oldham","pos":"C","age":28,"ovr":62},{"name":"Ennis Whatley","pos":"PG","age":23,"ovr":62}],
+    "NYK":[{"name":"Darrell Walker","pos":"SG","age":25,"ovr":66},{"name":"James Bailey","pos":"PF","age":28,"ovr":63},{"name":"Ernie Grunfeld","pos":"SF","age":30,"ovr":62},{"name":"Ken Bannister","pos":"C","age":26,"ovr":61}],
+    "WAS":[{"name":"Tom McMillen","pos":"PF","age":33,"ovr":63},{"name":"Darren Daye","pos":"SF","age":25,"ovr":62},{"name":"Charles Jones","pos":"C","age":28,"ovr":61}],
+    "BKN":[{"name":"Kelvin Ransey","pos":"PG","age":28,"ovr":65},{"name":"Mickey Johnson","pos":"SF","age":33,"ovr":64},{"name":"Jeff Turner","pos":"PF","age":23,"ovr":62}]
+  },
+  e1996: {
+    "CHI":[{"name":"Jason Caffey","pos":"PF","age":22,"ovr":64}],
+    "OKC":[{"name":"Frank Brickowski","pos":"PF","age":36,"ovr":66},{"name":"Sarunas Marciulionis","pos":"SG","age":32,"ovr":70},{"name":"David Wingate","pos":"SG","age":32,"ovr":63},{"name":"Eric Snow","pos":"PG","age":23,"ovr":62}],
+    "ORL":[{"name":"Darrell Armstrong","pos":"PG","age":28,"ovr":63},{"name":"Anthony Avent","pos":"PF","age":27,"ovr":61}],
+    "HOU":[{"name":"Eddie Johnson","pos":"SF","age":37,"ovr":70},{"name":"Charles Jones","pos":"C","age":38,"ovr":60},{"name":"Tim Breaux","pos":"SF","age":26,"ovr":61}],
+    "SAS":[{"name":"Cory Alexander","pos":"PG","age":22,"ovr":62},{"name":"Carl Herrera","pos":"PF","age":29,"ovr":65},{"name":"Greg Anderson","pos":"C","age":32,"ovr":64}],
+    "UTA":[{"name":"David Benoit","pos":"SF","age":27,"ovr":65},{"name":"Felton Spencer","pos":"C","age":28,"ovr":64},{"name":"Jamie Watson","pos":"SF","age":26,"ovr":61}],
+    "LAL":[{"name":"Sedale Threatt","pos":"PG","age":35,"ovr":67},{"name":"Fred Roberts","pos":"SF","age":36,"ovr":61},{"name":"Derek Strong","pos":"PF","age":28,"ovr":63}],
+    "NYK":[{"name":"Doug Christie","pos":"SG","age":26,"ovr":66},{"name":"Anthony Bonner","pos":"SF","age":30,"ovr":61}],
+    "IND":[{"name":"LaSalle Thompson","pos":"C","age":34,"ovr":62},{"name":"Fred Hoiberg","pos":"SG","age":23,"ovr":62}],
+    "PHX":[{"name":"Danny Ainge","pos":"SG","age":37,"ovr":69},{"name":"Joe Kleine","pos":"C","age":34,"ovr":61},{"name":"Mario Bennett","pos":"PF","age":23,"ovr":60},{"name":"Antonio Lang","pos":"SF","age":23,"ovr":60}],
+    "POR":[{"name":"Randolph Childress","pos":"PG","age":23,"ovr":62},{"name":"Dontonio Wingfield","pos":"SF","age":21,"ovr":61}],
+    "PHI":[{"name":"Greg Graham","pos":"SG","age":25,"ovr":62},{"name":"Richard Dumas","pos":"SF","age":26,"ovr":63}],
+    "DET":[{"name":"Mark West","pos":"C","age":35,"ovr":63},{"name":"Rafael Addison","pos":"SF","age":31,"ovr":62}],
+    "MIA":[{"name":"Sasha Danilovic","pos":"SG","age":26,"ovr":68},{"name":"John Salley","pos":"C","age":31,"ovr":63}],
+    "ATL":[{"name":"Stacey Augmon","pos":"SF","age":27,"ovr":68},{"name":"Andrew Lang","pos":"C","age":30,"ovr":64},{"name":"Ivano Newbill","pos":"C","age":25,"ovr":60},{"name":"Donnie Boyce","pos":"SG","age":23,"ovr":60}],
+    "DAL":[{"name":"Lorenzo Williams","pos":"C","age":27,"ovr":62},{"name":"Scott Brooks","pos":"PG","age":30,"ovr":61},{"name":"Terry Davis","pos":"PF","age":28,"ovr":62}]
+  },
+  e2016: {
+    "GSW":[{"name":"Ian Clark","ovr":68,"age":25,"pos":"SG"}],
+    "CLE":[{"name":"Mo Williams","ovr":70,"age":33,"pos":"PG"},{"name":"James Jones","ovr":64,"age":35,"pos":"SF"}],
+    "SAS":[{"name":"Jonathon Simmons","ovr":69,"age":26,"pos":"SG"}],
+    "OKC":[{"name":"Kyle Singler","ovr":66,"age":28,"pos":"SF"},{"name":"Randy Foye","ovr":67,"age":32,"pos":"SG"}],
+    "TOR":[{"name":"James Johnson","ovr":70,"age":29,"pos":"PF"},{"name":"Norman Powell","ovr":68,"age":22,"pos":"SG"},{"name":"Delon Wright","ovr":65,"age":23,"pos":"PG"}],
+    "LAC":[{"name":"Jeff Green","ovr":72,"age":29,"pos":"SF"},{"name":"Pablo Prigioni","ovr":64,"age":38,"pos":"PG"}],
+    "MIA":[{"name":"Joe Johnson","ovr":72,"age":34,"pos":"SF"},{"name":"Amar'e Stoudemire","ovr":68,"age":33,"pos":"C"},{"name":"Udonis Haslem","ovr":64,"age":35,"pos":"PF"}],
+    "BOS":[{"name":"R.J. Hunter","ovr":62,"age":22,"pos":"SG"}],
+    "ATL":[{"name":"Tim Hardaway Jr.","ovr":70,"age":24,"pos":"SG"},{"name":"Kris Humphries","ovr":68,"age":31,"pos":"PF"},{"name":"Kirk Hinrich","ovr":64,"age":35,"pos":"PG"}],
+    "HOU":[{"name":"Jason Terry","ovr":68,"age":38,"pos":"PG"},{"name":"Donatas Motiejunas","ovr":69,"age":25,"pos":"PF"}],
+    "POR":[{"name":"Gerald Henderson","ovr":70,"age":28,"pos":"SG"},{"name":"Noah Vonleh","ovr":66,"age":20,"pos":"PF"},{"name":"Chris Kaman","ovr":65,"age":33,"pos":"C"},{"name":"Pat Connaughton","ovr":62,"age":23,"pos":"SG"}],
+    "IND":[{"name":"Lavoy Allen","ovr":66,"age":27,"pos":"PF"},{"name":"Glenn Robinson III","ovr":64,"age":22,"pos":"SF"},{"name":"Joe Young","ovr":61,"age":23,"pos":"PG"}],
+    "DAL":[{"name":"David Lee","ovr":71,"age":32,"pos":"PF"},{"name":"Justin Anderson","ovr":64,"age":22,"pos":"SG"},{"name":"Salah Mejri","ovr":62,"age":29,"pos":"C"}],
+    "MEM":[{"name":"Lance Stephenson","ovr":69,"age":25,"pos":"SG"}],
+    "WAS":[{"name":"Kelly Oubre Jr.","ovr":66,"age":20,"pos":"SF"},{"name":"Drew Gooden","ovr":63,"age":34,"pos":"PF"},{"name":"Alan Anderson","ovr":63,"age":33,"pos":"SG"}],
+    "NOP":[{"name":"Alexis Ajinca","ovr":67,"age":28,"pos":"C"},{"name":"Luke Babbitt","ovr":65,"age":26,"pos":"SF"},{"name":"Alonzo Gee","ovr":63,"age":28,"pos":"SF"},{"name":"Toney Douglas","ovr":63,"age":30,"pos":"PG"}]
+  }
+};
+
+// Fusion du second passage (normalise la clé nom, dédoublonne).
+(function () {
+  if (typeof ERA_ROSTERS_EXTRA2 === 'undefined') return;
+  Object.keys(ERA_ROSTERS_EXTRA2).forEach(function (era) {
+    if (!ERA_ROSTERS[era]) return;
+    Object.keys(ERA_ROSTERS_EXTRA2[era]).forEach(function (tid) {
+      if (!ERA_ROSTERS[era][tid]) return;
+      var have = {};
+      ERA_ROSTERS[era][tid].forEach(function (p) { have[p.n] = 1; });
+      ERA_ROSTERS_EXTRA2[era][tid].forEach(function (p) {
+        var nm = p.n || p.name;
+        if (nm && !have[nm]) { ERA_ROSTERS[era][tid].push({ n: nm, pos: p.pos, ovr: p.ovr, age: p.age }); have[nm] = 1; }
+      });
+    });
+  });
+})();

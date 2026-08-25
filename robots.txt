@@ -1,4 +1,4 @@
-# Complexus Conseil — robots.txt
+# Complexus Conseil, robots.txt
 User-agent: *
 Allow: /
 

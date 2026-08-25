@@ -248,6 +248,10 @@
         <p>Ce qui déclenche l'appel change d'une entreprise à l'autre. Le travail à faire, lui, est toujours le même : comprendre ce qui bloque, décider avec ceux qui sont concernés, tester en petit, puis installer ce qui fait tenir.</p>
         <p>Je me présente volontiers comme un <strong>consultant de quartier</strong>. On m'appelle comme on appelle un artisan qu'on connaît : sans passer par un standard, sans proposition commerciale de quarante pages, et avec quelqu'un qui vient voir sur place avant de dire quoi que ce soit.</p>
       </div>
+      <figure class="figure-wide mt-3">
+        <img src="assets/quartier-rue.webp" width="1440" height="560" alt="Dessin au trait d'une rue parisienne ordinaire, avec ses commerces de rez-de-chaussée : pressing, boulangerie, café, quincaillerie, fleuriste." loading="lazy" decoding="async">
+        <figcaption>Rue de Bagnolet, dans le 20e arrondissement, où j'ai mon bureau. Dessin d'illustration, pas une photographie.</figcaption>
+      </figure>
       <ul class="triggers mt-3">
         <li>
           <h3>Une réorganisation</h3>
@@ -318,8 +322,58 @@
           <p><strong>Économies estimées</strong><br>De quelques centaines à deux mille euros par an selon l'action, chiffrées ligne par ligne.</p>
         </aside>
       </div>
+
+      <div class="carousel mt-3" id="cas-carrousel" role="group" aria-roledescription="carrousel" aria-label="Extraits du livrable">
+        <div class="carousel-viewport">
+          <div class="carousel-track" id="carousel-track">
+            <figure class="carousel-slide">
+              <img src="assets/cas-feuille-de-route.webp" width="870" height="375" alt="Extrait de la feuille de route : chaque ligne associe une action, un indicateur, un objectif à un an et le gain annuel estimé." loading="lazy" decoding="async">
+              <figcaption><b>La feuille de route</b>Une quinzaine d'actions classées, chacune avec son indicateur, son objectif à un an et le gain estimé. Rien qui reste au stade de l'intention.</figcaption>
+            </figure>
+            <figure class="carousel-slide">
+              <img src="assets/cas-tableau-de-bord.webp" width="742" height="232" alt="Extrait du tableau de bord : chaque action porte un responsable nommé, une échéance et un indicateur de suivi." loading="lazy" decoding="async">
+              <figcaption><b>Le tableau de bord</b>La même liste, mais avec un responsable nommé et une échéance. C'est ce document qu'on regarde dix minutes chaque semaine, et c'est lui qui fait la différence entre un plan et un changement réel.</figcaption>
+            </figure>
+          </div>
+        </div>
+        <div class="carousel-bar">
+          <button class="carousel-btn" type="button" id="carousel-prev" aria-label="Extrait précédent">‹</button>
+          <button class="carousel-btn" type="button" id="carousel-next" aria-label="Extrait suivant">›</button>
+          <span class="carousel-count" id="carousel-count" aria-live="polite">1 / 2</span>
+          <div class="carousel-dots" role="tablist" aria-label="Choisir un extrait">
+            <button class="carousel-dot" type="button" role="tab" data-go="0" aria-current="true" aria-label="Extrait 1, la feuille de route"></button>
+            <button class="carousel-dot" type="button" role="tab" data-go="1" aria-current="false" aria-label="Extrait 2, le tableau de bord"></button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
+
+<script>
+(function(){
+  var track=document.getElementById('carousel-track');
+  if(!track) return;
+  var slides=track.children.length, i=0;
+  var prev=document.getElementById('carousel-prev'), next=document.getElementById('carousel-next');
+  var count=document.getElementById('carousel-count');
+  var dots=Array.prototype.slice.call(document.querySelectorAll('.carousel-dot'));
+  function show(n){
+    i=Math.max(0,Math.min(slides-1,n));
+    track.style.transform='translateX('+(-i*100)+'%)';
+    count.textContent=(i+1)+' / '+slides;
+    prev.disabled=(i===0); next.disabled=(i===slides-1);
+    dots.forEach(function(d,k){ d.setAttribute('aria-current', k===i?'true':'false'); });
+  }
+  prev.addEventListener('click',function(){show(i-1);});
+  next.addEventListener('click',function(){show(i+1);});
+  dots.forEach(function(d){ d.addEventListener('click',function(){show(parseInt(d.dataset.go,10));}); });
+  document.getElementById('cas-carrousel').addEventListener('keydown',function(e){
+    if(e.key==='ArrowLeft'){show(i-1);e.preventDefault();}
+    if(e.key==='ArrowRight'){show(i+1);e.preventDefault();}
+  });
+  show(0);
+})();
+</script>
 
   <section class="section" id="diagnostic">
     <div class="container">
@@ -503,46 +557,40 @@
     </div>
   </section>
 
-  <section class="section">
-    <div class="container split split-wide">
-      <div>
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-head">
         <span class="label">La méthode</span>
         <h2>Quatre temps, et on avance</h2>
-        <div class="stack-sm mt-2">
-          <p>Rien de théorique. Chaque étape produit quelque chose que vos équipes voient, sinon elle ne sert à rien.</p>
-          <p><a class="link-more" href="methode/">Le déroulé complet d'une mission, semaine par semaine</a></p>
-        </div>
+        <p>Rien de théorique. Chaque étape produit quelque chose que vos équipes voient, sinon elle ne sert à rien.</p>
       </div>
-      <ol class="steps">
+      <figure class="figure-wide">
+        <img src="assets/atelier-tableau.webp" width="1440" height="648" alt="Tableau collaboratif d'un atelier de cadrage, organisé en trois colonnes : ce qui bloque, ce qu'on teste, qui porte chaque action." loading="lazy" decoding="async">
+        <figcaption>À quoi ressemble un atelier de cadrage. Les blocages sont remontés par les équipes elles-mêmes, les essais en découlent, et chaque action repart avec le nom de quelqu'un. Illustration du format, les contenus ne proviennent d'aucune mission réelle.</figcaption>
+      </figure>
+      <ol class="timeline">
         <li>
-          <div class="step-num">Temps 1</div>
-          <div class="step-body">
-            <h3>Écouter</h3>
-            <p>Des entretiens courts avec les personnes qui font le travail tous les jours. Je remonte les vraies causes, pas celles qu'on suppose depuis le bureau.</p>
-          </div>
+          <div class="t-step">Temps 1</div>
+          <h3>Écouter</h3>
+          <p>Des entretiens courts avec les personnes qui font le travail tous les jours. Je remonte les vraies causes, pas celles qu'on suppose depuis le bureau.</p>
         </li>
         <li>
-          <div class="step-num">Temps 2</div>
-          <div class="step-body">
-            <h3>Choisir avec eux</h3>
-            <p>On sélectionne la méthode ou l'outil avec les personnes concernées. Ce qui a été choisi ensemble se défend tout seul, et ne demande pas d'être imposé.</p>
-          </div>
+          <div class="t-step">Temps 2</div>
+          <h3>Choisir avec eux</h3>
+          <p>On sélectionne la méthode ou l'outil avec les personnes concernées. Ce qui a été choisi ensemble se défend tout seul.</p>
         </li>
         <li>
-          <div class="step-num">Temps 3</div>
-          <div class="step-body">
-            <h3>Tester en petit</h3>
-            <p>Un pilote sur une équipe et un cas réel. On mesure ce que ça change, on ajuste, et on obtient un premier résultat que les autres peuvent voir.</p>
-          </div>
+          <div class="t-step">Temps 3</div>
+          <h3>Tester en petit</h3>
+          <p>Un pilote sur une équipe et un cas réel. On mesure ce que ça change, on ajuste, et on obtient un résultat que les autres peuvent voir.</p>
         </li>
         <li>
-          <div class="step-num">Temps 4</div>
-          <div class="step-body">
-            <h3>Rendre autonome</h3>
-            <p>Formation, référent identifié en interne, points de suivi espacés. Je pars quand ça tourne sans moi, pas avant.</p>
-          </div>
+          <div class="t-step">Temps 4</div>
+          <h3>Rendre autonome</h3>
+          <p>Formation, référent identifié en interne, points de suivi espacés. Je pars quand ça tourne sans moi, pas avant.</p>
         </li>
       </ol>
+      <p class="mt-3"><a class="link-more" href="methode/">Le déroulé complet d'une mission, semaine par semaine</a></p>
     </div>
   </section>
 
@@ -632,7 +680,7 @@
         <h3>Écrire un message</h3>
         <p class="form-note">Je réponds sous 24 heures ouvrées.</p>
         <form action="https://formsubmit.co/complexusconseil@gmail.com" method="POST" id="form-accueil">
-          <input type="hidden" name="_subject" value="Complexus Conseil — Demande de contact">
+          <input type="hidden" name="_subject" value="Complexus Conseil : demande de contact">
           <input type="hidden" name="_captcha" value="false">
           <input type="hidden" name="_template" value="table">
           <input type="hidden" name="_next" value="https://complexusconseil.fr/contact/?envoye=1">
@@ -653,7 +701,7 @@
           <div class="field">
             <label for="form-accueil-sujet">Votre situation</label>
             <select id="form-accueil-sujet" name="situation">
-              <option>— Sélectionner —</option>
+              <option>Sélectionner</option>
               <option>Une réorganisation à mener</option>
               <option>Un outil que personne n'utilise</option>
               <option>Une démarche RSE ou un rapport VSME</option>
